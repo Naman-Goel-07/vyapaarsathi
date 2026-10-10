@@ -149,20 +149,28 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
       const filePath = `${businessId || 'default'}/${fileName}`
 
-      // 1. Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      // 1. Upload to Supabase Storage (best-effort, don't block extraction)
+      supabase.storage
         .from('secure-notices')
         .upload(filePath, file)
+        .then(({ error }) => { if (error) console.warn('Storage upload error:', error) })
 
-      if (uploadError) {
-        console.warn('Storage upload error (proceeding to extraction):', uploadError)
-      }
+      // 2. Read the file as base64 on the client and send it directly to the API
+      const arrayBuffer = await file.arrayBuffer()
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
 
-      // 2. Call AI Extraction API
+      // 3. Call AI Extraction API with the actual file data
       const res = await fetch('/api/extract-notice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: filePath, businessId })
+        body: JSON.stringify({
+          fileBase64: base64,
+          fileMimeType: file.type || 'application/pdf',
+          fileUrl: filePath,
+          businessId
+        })
       })
 
       const json = await res.json()
@@ -264,6 +272,19 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
     setErrorMessage(null)
 
     try {
+      // Safely parse deadline to YYYY-MM-DD if valid date, else null
+      let formattedDeadline: string | null = null
+      if (docketData.deadline) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(docketData.deadline)) {
+          formattedDeadline = docketData.deadline
+        } else {
+          const parsedDate = new Date(docketData.deadline)
+          if (!isNaN(parsedDate.getTime())) {
+            formattedDeadline = parsedDate.toISOString().split('T')[0]
+          }
+        }
+      }
+
       // 1. Create Notice Record
       const { data: notice, error: noticeErr } = await supabase
         .from('notices')
@@ -272,7 +293,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
           authority: docketData.authority,
           form: docketData.form,
           issue: docketData.issue,
-          deadline: docketData.deadline || null,
+          deadline: formattedDeadline,
           raw_file_url: docketData.rawFileUrl || null,
           confidence: docketData.confidence
         })

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
 import { SAMPLE_NOTICES, getSampleNoticeById, type SampleNotice } from '@/lib/sampleNotices';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 // Initialize the Gemini client.
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
 
     const body = await request.json().catch(() => ({}));
-    const { fileUrl, businessId, sampleId, sampleText } = body;
+    const { fileUrl, businessId, sampleId, sampleText, fileBase64, fileMimeType } = body;
 
     // Allow demo/sample requests even if session is not active for agent-as-judge automated runs
     const isSampleRequest = Boolean(sampleId || sampleText);
@@ -86,8 +89,108 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!fileUrl && !sampleId && !sampleText) {
-      return NextResponse.json({ error: 'Missing fileUrl, sampleId, or sampleText in request payload' }, { status: 400 });
+    if (!fileUrl && !sampleId && !sampleText && !fileBase64) {
+      return NextResponse.json({ error: 'Missing fileUrl, sampleId, sampleText, or fileBase64 in request payload' }, { status: 400 });
+    }
+
+    // CASE 0: Direct base64 file data from client (primary path for real uploads)
+    if (fileBase64) {
+      const mimeType = fileMimeType || 'application/pdf';
+      
+      if (apiKey) {
+        let tempFilePath: string | null = null;
+        let fileUpload: any = null;
+
+        try {
+          // 1. Write buffer to temporary file for Gemini Files API
+          const fileBuffer = Buffer.from(fileBase64, 'base64');
+          const ext = mimeType.includes('pdf') ? '.pdf' : mimeType.includes('png') ? '.png' : '.jpg';
+          tempFilePath = path.join(os.tmpdir(), `notice-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+          fs.writeFileSync(tempFilePath, fileBuffer);
+
+          // 2. Upload file to Gemini
+          fileUpload = await ai.files.upload(tempFilePath, {
+            mimeType,
+          });
+        } catch (uploadErr) {
+          console.warn('Gemini file upload failed, will fallback to inlineData:', uploadErr);
+        } finally {
+          if (tempFilePath && fs.existsSync(tempFilePath)) {
+            try { fs.unlinkSync(tempFilePath); } catch (_) {}
+          }
+        }
+
+        const candidateModels = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+
+        for (const modelName of candidateModels) {
+          try {
+            const parts: any[] = [];
+            if (fileUpload?.uri) {
+              parts.push({
+                fileData: {
+                  fileUri: fileUpload.uri,
+                  mimeType: fileUpload.mimeType || mimeType,
+                }
+              });
+            } else {
+              parts.push({
+                inlineData: {
+                  data: fileBase64,
+                  mimeType,
+                }
+              });
+            }
+
+            parts.push({
+              text: "Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
+            });
+
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: [
+                {
+                  role: 'user',
+                  parts,
+                }
+              ],
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: noticeSchema,
+                temperature: 0.1,
+              }
+            });
+
+            if (response.text) {
+              const parsed = JSON.parse(response.text);
+              const roleNorm = (parsed.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
+              const data = {
+                ...parsed,
+                owner_role: roleNorm,
+                dinNumber: parsed.din_number || parsed.dinNumber || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
+                din_number: parsed.din_number || parsed.dinNumber || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
+                penaltyAmount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
+                penalty_amount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
+              };
+              return NextResponse.json({
+                data,
+                needsReview: (data.confidence || 1) < 0.80,
+                model: modelName
+              });
+            }
+          } catch (geminiErr: any) {
+            console.error(`Gemini extraction with ${modelName} failed:`, geminiErr?.message || geminiErr);
+          }
+        }
+      }
+      
+      // Fallback if Gemini fails on direct base64
+      return NextResponse.json({
+        data: detectFallbackFromText('unknown'),
+        needsReview: true,
+        fallbackUsed: true,
+        model: 'direct-fallback',
+        warning: 'Gemini extraction failed on uploaded file. Check GEMINI_API_KEY.'
+      });
     }
 
     // CASE 1: Sample ID provided directly
@@ -98,7 +201,7 @@ export async function POST(request: Request) {
         if (apiKey) {
           try {
             const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
+              model: 'gemini-3.5-flash',
               contents: [
                 {
                   role: 'user',
@@ -151,7 +254,7 @@ export async function POST(request: Request) {
       if (apiKey) {
         try {
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             contents: [
               {
                 role: 'user',
@@ -224,7 +327,7 @@ export async function POST(request: Request) {
       if (apiKey) {
         try {
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             contents: [
               {
                 role: 'user',

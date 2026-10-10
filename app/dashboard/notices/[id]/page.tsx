@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TaskGraph from '@/components/TaskGraph'
 import CollaborativePipeline from '@/components/CollaborativePipeline'
+import StatutoryReplyGenerator from '@/components/StatutoryReplyGenerator'
+import VernacularVoiceAssistant from '@/components/VernacularVoiceAssistant'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
 
 export default async function NoticeDetailPage({ params }: { params: { id: string } }) {
@@ -129,6 +131,30 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
           </div>
         </div>
       </div>
+
+      {/* AWAAZ: VERNACULAR AUDIO BRIEFING FOR THE VYAPAARI */}
+      <VernacularVoiceAssistant
+        authority={notice.authority}
+        form={notice.form}
+        issue={notice.issue}
+        deadline={notice.deadline}
+        penaltyAmount={notice.penalty_amount || 245000}
+        businessName={(notice.businesses as any)?.name || 'Vyapaari Ji'}
+      />
+
+      {/* THE CLOSER: AI STATUTORY REPLY GENERATOR (FORM GST ASMT-11) */}
+      <StatutoryReplyGenerator
+        noticeId={notice.id}
+        authority={notice.authority}
+        form={notice.form}
+        issue={notice.issue}
+        deadline={notice.deadline}
+        penaltyAmount={notice.penalty_amount || 245000}
+        businessName={(notice.businesses as any)?.name || 'Registered MSME'}
+        dinNumber={notice.din_number || 'DIN-' + notice.id.slice(0, 8).toUpperCase()}
+        currentStatus={notice.status}
+        userRole={userRole}
+      />
 
       {/* 5-STEP COLLABORATIVE PIPELINE COMPONENT ("THE FILE") */}
       <CollaborativePipeline
