@@ -33,14 +33,14 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
 
   // Calculate actual overdue and at-risk notices
   let overdueCount = 0
-  let totalBasePenaltyAtRisk = 0
+  let totalTaxDemand = 0
   let totalLateFees = 0
   let totalInterest = 0
 
   notices.forEach(notice => {
     if (notice.status !== 'closed' && notice.status !== 'filed') {
       const demand = notice.penalty_amount || 245000
-      totalBasePenaltyAtRisk += demand
+      totalTaxDemand += demand
 
       if (notice.deadline) {
         const deadlineDate = new Date(notice.deadline)
@@ -65,90 +65,146 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
 
   // Fallback defaults for demo if no notices in DB are yet overdue
   const displayOverdueCount = overdueCount > 0 ? overdueCount : (simulatedDays > 0 ? 1 : 1)
-  const displayLateFees = totalLateFees > 0 ? totalLateFees : (simulatedDays > 0 ? Math.min(2000, simulatedDays * 50) : 450)
-  const displayInterest = totalInterest > 0 ? totalInterest : (simulatedDays > 0 ? Math.round(245000 * (0.18 / 365) * simulatedDays) : 362)
-  const grandTotalExposure = displayLateFees + displayInterest
+  const displayTaxDemand = totalTaxDemand > 0 ? totalTaxDemand : 245000
+  const displayLateFees = totalLateFees > 0 ? totalLateFees : (simulatedDays > 0 ? Math.min(2000, simulatedDays * 50) : 0)
+  
+  // Fight vs Settle Logic
+  // Option A: Settle within 30 days (Sec 73: Tax + 25% Penalty)
+  const settlePenalty = Math.round(displayTaxDemand * 0.25)
+  const settleTotal = displayTaxDemand + settlePenalty
+  
+  // Option B: Fight and Lose after 1 Year (Tax + 100% Penalty + 18% Interest + Late Fees)
+  const fightPenalty = displayTaxDemand // 100% penalty
+  const fightInterest = Math.round(displayTaxDemand * 0.18) // 1 year 18% p.a.
+  // We use max late fee for a year for calculation
+  const fightLateFee = Math.max(2000, displayLateFees)
+  const fightTotal = displayTaxDemand + fightPenalty + fightInterest + fightLateFee
 
   return (
-    <div className="bg-post-red/5 border-2 border-post-red/20 rounded-sm p-5 space-y-4 relative overflow-hidden text-ink">
-      <div className="absolute top-0 left-0 w-2 h-full bg-post-red"></div>
-
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pl-2">
+    <div className="bg-paper border-2 border-ink rounded-sm p-5 space-y-5 relative overflow-hidden text-ink shadow-sm">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="bg-post-red text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-              <ShieldAlert size={11} /> Live Engine
+              <ShieldAlert size={11} /> Risk Engine
             </span>
             <span className="text-xs font-mono text-gray-500 font-semibold">
-              S.47 CGST Act (₹50/Day) & Rule 88B (18% Interest)
+              S.73 (Penalty) & Rule 88B (18% Interest)
             </span>
           </div>
-          <h3 className="text-post-red font-bold font-serif text-lg sm:text-xl tracking-tight">
-            Penalty Exposure & Late Fee Desk
+          <h3 className="text-ink font-bold font-serif text-lg sm:text-xl tracking-tight">
+            Fight vs. Settle Matrix
           </h3>
           <p className="text-xs text-gray-600 max-w-xl">
-            Live compounding accumulation of statutory late fees and interest across unfiled government notices.
+            Live compounding accumulation of statutory exposure. See exactly what it costs to ignore a notice.
           </p>
         </div>
 
-        {/* METRIC BADGES */}
-        <div className="flex items-center gap-4 sm:gap-6 bg-white px-5 py-3 rounded-sm border border-post-red/20 shadow-xs shrink-0">
-          <div className="text-center">
-            <p className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">
-              Statutory Late Fee
-            </p>
-            <p className="text-xl sm:text-2xl font-bold text-post-red font-mono">
-              ₹{displayLateFees.toLocaleString('en-IN')}
-            </p>
+        <div className="bg-red-50 border-2 border-post-red/40 px-4 py-2 rounded-sm text-right shrink-0">
+          <p className="text-[10px] font-mono text-post-red uppercase font-bold tracking-wider">
+            Total Money At Risk
+          </p>
+          <p className="text-2xl font-bold text-post-red font-mono tracking-tight">
+            ₹{fightTotal.toLocaleString('en-IN')}
+          </p>
+        </div>
+      </div>
+
+      {/* MATRIX: SETTLE VS FIGHT */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* OPTION A: SETTLE */}
+        <div className="border border-green-200 bg-green-50/30 rounded-sm p-4 space-y-3">
+          <div className="flex justify-between items-center border-b border-green-200 pb-2">
+            <h4 className="font-bold text-forest-green flex items-center gap-1.5">
+              <CheckCircle2 size={16} /> Option A: Settle Early
+            </h4>
+            <span className="text-[10px] font-mono font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-xs">
+              Within 30 Days
+            </span>
           </div>
-
-          <div className="w-px h-8 bg-gray-200"></div>
-
-          <div className="text-center">
-            <p className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">
-              18% P.A. Interest
-            </p>
-            <p className="text-lg sm:text-xl font-bold text-ink font-mono">
-              ₹{displayInterest.toLocaleString('en-IN')}
-            </p>
+          
+          <div className="space-y-1.5 text-xs font-mono">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Base Tax Demand</span>
+              <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">S.73 Concessional Penalty (25%)</span>
+              <span className="font-semibold text-ink">₹{settlePenalty.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Interest / Late Fees</span>
+              <span className="font-semibold text-forest-green">Waived</span>
+            </div>
           </div>
+          
+          <div className="pt-2 border-t border-green-200 flex justify-between items-center">
+            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">Total Payable</span>
+            <span className="text-lg font-bold text-forest-green font-mono">₹{settleTotal.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
 
-          <div className="w-px h-8 bg-gray-200"></div>
-
-          <div className="text-center">
-            <p className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">
-              Overdue Dockets
-            </p>
-            <p className="text-lg sm:text-xl font-bold text-ink font-mono">
-              {displayOverdueCount}
-            </p>
+        {/* OPTION B: FIGHT & LOSE */}
+        <div className="border border-red-200 bg-red-50/30 rounded-sm p-4 space-y-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-8 h-8 bg-post-red/10 rotate-45 translate-x-4 -translate-y-4"></div>
+          <div className="flex justify-between items-center border-b border-red-200 pb-2">
+            <h4 className="font-bold text-post-red flex items-center gap-1.5">
+              <AlertTriangle size={16} /> Option B: Fight & Lose
+            </h4>
+            <span className="text-[10px] font-mono font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded-xs">
+              Litigation (1 Yr+)
+            </span>
+          </div>
+          
+          <div className="space-y-1.5 text-xs font-mono">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Base Tax Demand</span>
+              <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">S.73 Full Penalty (100%)</span>
+              <span className="font-semibold text-post-red">₹{fightPenalty.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Accumulated 18% Interest</span>
+              <span className="font-semibold text-post-red">₹{fightInterest.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">S.47 Late Filing Fees</span>
+              <span className="font-semibold text-post-red">₹{fightLateFee.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+          
+          <div className="pt-2 border-t border-red-200 flex justify-between items-center">
+            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">Total Exposure</span>
+            <span className="text-lg font-bold text-post-red font-mono">₹{fightTotal.toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
 
       {/* INTERACTIVE HACKATHON SIMULATOR BAR */}
-      <div className="pt-3 border-t border-post-red/15 pl-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="pt-2 flex justify-between items-center bg-gray-50 border border-gray-200 rounded-sm p-3">
         <button
           onClick={() => setShowSimulator(!showSimulator)}
-          className="text-xs font-mono font-bold text-post-red hover:text-red-800 flex items-center gap-1.5 cursor-pointer underline underline-offset-2"
+          className="text-xs font-mono font-bold text-ink hover:text-blue-600 flex items-center gap-1.5 cursor-pointer underline underline-offset-2 transition-colors"
         >
           <Sliders size={13} />
-          {showSimulator ? 'Hide Deadline Slip Simulator' : 'Test "Cost of Doing Nothing" Simulator'}
+          {showSimulator ? 'Close Daily Interest Simulator' : 'Test Daily Interest Simulator'}
         </button>
 
-        <span className="text-[11px] font-mono text-gray-500">
-          Total Compounding Exposure: <strong className="text-post-red">₹{grandTotalExposure.toLocaleString('en-IN')}</strong>
+        <span className="text-[11px] font-mono text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 shadow-xs">
+          Difference: <strong className="text-ink">₹{(fightTotal - settleTotal).toLocaleString('en-IN')} saved by settling.</strong>
         </span>
       </div>
 
       {showSimulator && (
-        <div className="bg-white p-4 rounded-xs border border-post-red/30 shadow-inner space-y-3 text-xs pl-4 font-mono">
-          <div className="flex justify-between items-center">
+        <div className="bg-white p-4 rounded-xs border-2 border-ink shadow-sm space-y-3 text-xs font-mono">
+          <div className="flex justify-between items-center border-b border-gray-100 pb-2">
             <span className="font-bold text-ink flex items-center gap-1.5">
-              <Clock size={13} className="text-post-red" />
+              <Clock size={13} className="text-blue-600" />
               Simulate Days Elapsed After Statutory Deadline:
             </span>
-            <span className="text-post-red font-bold text-sm bg-red-50 px-2 py-0.5 rounded border border-red-200">
+            <span className="text-blue-700 font-bold text-sm bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
               +{simulatedDays} Days Past Due
             </span>
           </div>
@@ -156,29 +212,29 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
           <input
             type="range"
             min="0"
-            max="60"
+            max="365"
             step="1"
             value={simulatedDays}
             onChange={(e) => setSimulatedDays(Number(e.target.value))}
-            className="w-full accent-post-red cursor-pointer"
+            className="w-full accent-blue-600 cursor-pointer my-2"
           />
 
           <div className="flex justify-between text-[10px] text-gray-400">
-            <span>T+0 (Deadline)</span>
-            <span>+15 Days</span>
+            <span>T+0</span>
             <span>+30 Days</span>
-            <span>+40 Days (₹2,000 Cap Reached)</span>
-            <span>+60 Days</span>
+            <span>+90 Days</span>
+            <span>+180 Days</span>
+            <span>+365 Days</span>
           </div>
 
-          <div className="bg-gray-50 p-2.5 rounded border border-gray-200 text-[11px] text-gray-600 flex justify-between items-center">
+          <div className="bg-blue-50/50 p-2.5 rounded border border-blue-100 text-[11px] text-gray-700 flex justify-between items-center mt-2">
             <span>
-              💡 <em>Slide 6 Proof:</em> At ₹50/day, a business hits the statutory ₹2,000 cap by Day 40. Interest continues accruing at 18% p.a.
+              💡 <em>Live Calculation:</em> At Day {simulatedDays}, 18% p.a. interest adds <strong>₹{Math.round(displayTaxDemand * (0.18/365) * simulatedDays).toLocaleString('en-IN')}</strong> to your exposure.
             </span>
             {simulatedDays > 0 && (
               <button
                 onClick={() => setSimulatedDays(0)}
-                className="text-gray-500 hover:text-ink text-[10px] font-bold flex items-center gap-1 underline"
+                className="text-gray-500 hover:text-ink text-[10px] font-bold flex items-center gap-1 underline shrink-0 ml-4"
               >
                 <RotateCcw size={11} /> Reset
               </button>
