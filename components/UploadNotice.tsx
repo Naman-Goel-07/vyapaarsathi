@@ -11,14 +11,13 @@ import {
   AlertTriangle,
   Plus,
   Trash2,
-  FileSpreadsheet,
   Calendar,
   Building2,
   Scale,
   ShieldCheck,
   FileCheck
 } from 'lucide-react'
-import { SAMPLE_NOTICES, type SampleNotice } from '@/lib/sampleNotices'
+
 
 export interface DocketFormData {
   authority: string
@@ -51,7 +50,6 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
   const [docketData, setDocketData] = useState<DocketFormData | null>(null)
   const [newDocText, setNewDocText] = useState('')
   const [savingDocket, setSavingDocket] = useState(false)
-  const [activeSampleId, setActiveSampleId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -141,7 +139,6 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
     setLoading(true)
     setLoadingMessage(`Uploading & transcribing ${queued.name} with Gemini 2.5 Flash...`)
     setErrorMessage(null)
-    setActiveSampleId(null)
 
     try {
       const file = queued.file
@@ -204,66 +201,6 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
     }
   }
 
-  // Quick-load demo sample notice
-  const handleLoadSample = async (sample: SampleNotice) => {
-    setLoading(true)
-    setLoadingMessage(`Transcribing ${sample.title} with Gemini 2.5 Flash...`)
-    setErrorMessage(null)
-    setActiveSampleId(sample.id)
-
-    try {
-      const res = await fetch('/api/extract-notice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sampleId: sample.id,
-          sampleText: sample.sampleText,
-          businessId
-        })
-      })
-
-      const json = await res.json()
-      const data = json.data || sample
-
-      setDocketData({
-        authority: data.authority || sample.authority,
-        form: data.form || sample.form,
-        dinNumber: data.din_number || data.dinNumber || sample.dinNumber,
-        issue: data.issue || sample.issue,
-        deadline: data.deadline || sample.deadline,
-        penaltyAmount: typeof (data.penalty_amount || data.penaltyAmount) === 'number'
-          ? (data.penalty_amount || data.penaltyAmount)
-          : sample.penaltyAmount,
-        action: data.action || sample.action || 'Prepare and submit response in Form GST DRC-06',
-        owner_role: (data.owner_role as 'owner' | 'ca') || sample.owner_role || 'ca',
-        documents: Array.isArray(data.documents) ? data.documents : sample.documents,
-        confidence: typeof data.confidence === 'number' ? data.confidence : sample.confidence,
-        rawFileUrl: `sample://${sample.id}`
-      })
-
-      setIsModalOpen(true)
-    } catch (err: any) {
-      console.warn('Network issue during sample extraction, populating direct sample:', err)
-      // Resilient fallback: populate directly from preset
-      setDocketData({
-        authority: sample.authority,
-        form: sample.form,
-        dinNumber: sample.dinNumber,
-        issue: sample.issue,
-        deadline: sample.deadline,
-        penaltyAmount: sample.penaltyAmount,
-        action: sample.action || 'Submit statutory reply',
-        owner_role: sample.owner_role || 'ca',
-        documents: sample.documents,
-        confidence: sample.confidence,
-        rawFileUrl: `sample://${sample.id}`
-      })
-      setIsModalOpen(true)
-    } finally {
-      setLoading(false)
-      setLoadingMessage('')
-    }
-  }
 
   // Save the reviewed docket to Supabase `notices` and `tasks`
   const handleConfirmAndSeal = async () => {
@@ -459,73 +396,8 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
         </div>
       )}
 
-      {/* QUICK-LOAD SAMPLE GOVT NOTICES BAR */}
-      <div className="bg-gray-50 border border-gray-200 rounded-sm p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-gray-500 flex items-center gap-1.5">
-            <FileSpreadsheet size={13} className="text-ink" />
-            TRY A SAMPLE GOVT NOTICE (1-CLICK DEMO):
-          </span>
-          {loading && (
-            <span className="text-[11px] text-blue-600 font-mono animate-pulse flex items-center gap-1">
-              <Loader2 size={11} className="animate-spin" />
-              Parsing Statutory Clauses...
-            </span>
-          )}
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {SAMPLE_NOTICES.map(sample => {
-            const isSampleLoading = loading && activeSampleId === sample.id
-            const colorClass =
-              sample.id === 'gst-drc-01'
-                ? 'border-red-200 hover:border-red-400 hover:bg-red-50/50 text-red-950'
-                : sample.id === 'it-148a'
-                ? 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 text-blue-950'
-                : 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/50 text-amber-950'
 
-            const badgeColor =
-              sample.id === 'gst-drc-01'
-                ? 'bg-red-100 text-red-800'
-                : sample.id === 'it-148a'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-amber-100 text-amber-800'
-
-            const amountStr =
-              sample.penaltyAmount >= 100000
-                ? `₹${(sample.penaltyAmount / 100000).toFixed(2)}L`
-                : `₹${sample.penaltyAmount.toLocaleString('en-IN')}`
-
-            return (
-              <button
-                key={sample.id}
-                type="button"
-                onClick={() => handleLoadSample(sample)}
-                disabled={loading}
-                className={`text-left bg-white border rounded-sm p-2.5 transition-all text-xs flex flex-col justify-between gap-1 shadow-xs group ${colorClass} ${
-                  isSampleLoading ? 'ring-2 ring-blue-500 animate-pulse' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="font-mono font-bold tracking-tight text-ink group-hover:text-blue-700 truncate">
-                    {sample.form.split('(')[0].trim()}
-                  </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-xs shrink-0 ${badgeColor}`}>
-                    {amountStr}
-                  </span>
-                </div>
-                <p className="text-[11px] text-gray-500 line-clamp-1">
-                  {sample.title}
-                </p>
-                <div className="text-[10px] text-gray-400 font-mono mt-0.5 flex justify-between items-center">
-                  <span>Due: {sample.deadline}</span>
-                  <span className="text-blue-600 font-semibold group-hover:underline">Load &rarr;</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
 
       {/* BUREAUCRATIC EXTRACTION DOCKET MODAL ("FORM 7-A: NOTICE INTAKE TRANSCRIPT") */}
       {isModalOpen && docketData && (

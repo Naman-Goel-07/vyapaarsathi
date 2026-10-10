@@ -13,10 +13,10 @@ export default function SignupPage({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
-    <div className="flex-1 flex flex-col w-full px-4 sm:max-w-md justify-center gap-2 mx-auto min-h-screen py-12">
+    <div className="flex-1 flex flex-col w-full px-4 sm:max-w-md justify-center gap-2 mx-auto min-h-screen py-12 bg-paper text-ink">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6 font-medium"
+        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-ink mb-6 font-medium"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -34,26 +34,26 @@ export default function SignupPage({
         Back to Home
       </Link>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+      <div className="bg-white p-8 rounded-sm shadow-sm border-2 border-ink">
         <form 
           className="flex flex-col w-full gap-4" 
           action={signup}
           onSubmit={() => setIsSubmitting(true)}
         >
           <div className="text-center mb-2">
-            <h1 className="text-3xl font-bold text-blue-600">Sign Up</h1>
+            <h1 className="text-3xl font-bold font-serif text-ink tracking-tight">Sign Up</h1>
             <p className="text-sm text-gray-500 mt-1">Get started with compliance tracking</p>
           </div>
           
           {searchParams?.error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-sm">
               <p className="font-semibold">Sign Up Failed</p>
               <p className="mt-0.5">{searchParams.error}</p>
             </div>
           )}
 
           {searchParams?.message && (
-            <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
+            <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-sm">
               {searchParams.message}
             </div>
           )}
@@ -67,7 +67,7 @@ export default function SignupPage({
               name="role" 
               value={role} 
               onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded-lg px-4 py-2.5 bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+              className="w-full rounded-sm px-4 py-2.5 bg-white border border-gray-300 text-ink focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition"
             >
               <option value="owner">Business Owner</option>
               <option value="ca">Chartered Accountant</option>
@@ -81,7 +81,7 @@ export default function SignupPage({
               </label>
               <input 
                 id="businessName"
-                className="w-full rounded-lg px-4 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition" 
+                className="w-full rounded-sm px-4 py-2.5 bg-white border border-gray-300 text-ink placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition" 
                 name="businessName" 
                 placeholder="My Business Pvt Ltd" 
                 required 
@@ -95,7 +95,7 @@ export default function SignupPage({
             </label>
             <input 
               id="email"
-              className="w-full rounded-lg px-4 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition" 
+              className="w-full rounded-sm px-4 py-2.5 bg-white border border-gray-300 text-ink placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition" 
               name="email" 
               type="email" 
               placeholder="you@example.com" 
@@ -109,7 +109,7 @@ export default function SignupPage({
             </label>
             <input 
               id="password"
-              className="w-full rounded-lg px-4 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition" 
+              className="w-full rounded-sm px-4 py-2.5 bg-white border border-gray-300 text-ink placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition" 
               type="password" 
               name="password" 
               placeholder="••••••••" 
@@ -120,7 +120,7 @@ export default function SignupPage({
           <button 
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed font-semibold rounded-lg px-4 py-2.5 text-white transition mt-2 shadow-sm flex items-center justify-center gap-2"
+            className="w-full bg-ink hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed font-semibold rounded-sm px-4 py-2.5 text-white transition mt-2 shadow-sm flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -137,7 +137,7 @@ export default function SignupPage({
 
           <p className="text-sm text-center text-gray-600 mt-2">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+            <Link href="/login" className="text-ink font-semibold hover:underline">
               Log in
             </Link>
           </p>
