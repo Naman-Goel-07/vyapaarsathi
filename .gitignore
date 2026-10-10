@@ -39,8 +39,22 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Antigravity & Teamwork Multi-Agent System
+# Antigravity, Subagents & Test Suites
 .agents/
+tests/
+test/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation & Scratch Files
 *.md
+PORTAL_FEATURES.md
 vyapaar_sathi_prompt.md
 handoff_master_prompt.md
+PROJECT.md
+TEST_INFRA.md
+TEST_READY.md
+scratch/
+*.log

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import UploadNotice from '@/components/UploadNotice'
+import DynamicPenaltyDesk from '@/components/DynamicPenaltyDesk'
+import ComplianceScoreboard from '@/components/ComplianceScoreboard'
 
 export default async function OwnerDashboard() {
   const supabase = createClient()
@@ -24,7 +26,10 @@ export default async function OwnerDashboard() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* SLIDE 10 ROADMAP: THE COMPLIANCE SCOREBOARD */}
+      <ComplianceScoreboard />
+
       <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-300 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-2 h-full bg-ink"></div>
         <div className="pl-4">
@@ -34,28 +39,8 @@ export default async function OwnerDashboard() {
         <UploadNotice businessId={profile.business_id} />
       </div>
 
-      {/* PHASE 4: THE PENALTY DESK */}
-      <div className="bg-post-red/5 border border-post-red/20 rounded-sm p-5 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-post-red"></div>
-        <div className="space-y-1">
-          <h3 className="text-post-red font-bold font-serif text-lg tracking-tight flex items-center gap-2">
-            <span className="bg-post-red text-white text-[10px] font-mono px-2 py-0.5 rounded-sm uppercase tracking-wider">Live</span>
-            Penalty Exposure Calculator
-          </h3>
-          <p className="text-sm text-gray-700 font-medium">Tracking estimated ₹50/day late fees across all overdue compliance matters.</p>
-        </div>
-        <div className="flex items-center gap-8 bg-white px-6 py-3 rounded border border-post-red/10 shadow-sm">
-          <div className="text-center">
-            <p className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">At Risk</p>
-            <p className="text-2xl font-bold text-post-red font-mono">₹450</p>
-          </div>
-          <div className="w-px h-8 bg-gray-200"></div>
-          <div className="text-center">
-            <p className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">Overdue Files</p>
-            <p className="text-xl font-bold text-ink font-mono">2</p>
-          </div>
-        </div>
-      </div>
+      {/* SLIDE 2 & 6: DYNAMIC PENALTY EXPOSURE & LATE FEE ENGINE */}
+      <DynamicPenaltyDesk notices={notices || []} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {notices?.length === 0 ? (

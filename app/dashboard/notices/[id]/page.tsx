@@ -5,6 +5,8 @@ import TaskGraph from '@/components/TaskGraph'
 import CollaborativePipeline from '@/components/CollaborativePipeline'
 import StatutoryReplyGenerator from '@/components/StatutoryReplyGenerator'
 import VernacularVoiceAssistant from '@/components/VernacularVoiceAssistant'
+import InstitutionalMemory from '@/components/InstitutionalMemory'
+import CalendarDesk from '@/components/CalendarDesk'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
 
 export default async function NoticeDetailPage({ params }: { params: { id: string } }) {
@@ -154,6 +156,20 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         dinNumber={notice.din_number || 'DIN-' + notice.id.slice(0, 8).toUpperCase()}
         currentStatus={notice.status}
         userRole={userRole}
+      />
+
+      {/* SLIDE 4 & 8: INSTITUTIONAL MEMORY & PRECEDENT RECALL */}
+      <InstitutionalMemory
+        form={notice.form}
+        issue={notice.issue}
+        authority={notice.authority}
+      />
+
+      {/* SLIDE 3, 4 & 7: THE CALENDAR DESK AUTOMATED CHASE ENGINE */}
+      <CalendarDesk
+        deadline={notice.deadline}
+        noticeId={notice.id}
+        businessName={(notice.businesses as any)?.name || 'Registered MSME'}
       />
 
       {/* 5-STEP COLLABORATIVE PIPELINE COMPONENT ("THE FILE") */}

@@ -61,13 +61,20 @@ FORMAT YOUR RESPONSE AS CLEAN, BEAUTIFULLY FORMATTED HTML (using standard <h2>, 
 
       for (const model of candidateModels) {
         try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              temperature: 0.2,
-            }
-          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('TIMEOUT_3.5S')), 3500)
+          );
+
+          const response = await Promise.race([
+            ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: {
+                temperature: 0.2,
+              }
+            }),
+            timeoutPromise
+          ]) as any;
 
           if (response.text) {
             replyHtml = response.text
@@ -78,7 +85,8 @@ FORMAT YOUR RESPONSE AS CLEAN, BEAUTIFULLY FORMATTED HTML (using standard <h2>, 
             break;
           }
         } catch (err: any) {
-          console.warn(`Statutory reply generation with ${model} failed:`, err?.message || err);
+          console.warn(`Statutory reply generation with ${model} timed out or 503:`, err?.message || err);
+          break; // Avoid compounding 503 delays during live demo
         }
       }
     }

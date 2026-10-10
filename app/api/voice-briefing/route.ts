@@ -116,14 +116,21 @@ Return strictly a valid JSON object:
 
       for (const model of candidateModels) {
         try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              temperature: 0.2,
-            }
-          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('TIMEOUT_3S')), 3000)
+          );
+
+          const response = await Promise.race([
+            ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: {
+                responseMimeType: 'application/json',
+                temperature: 0.2,
+              }
+            }),
+            timeoutPromise
+          ]) as any;
 
           if (response.text) {
             const parsed = JSON.parse(response.text);
@@ -133,7 +140,8 @@ Return strictly a valid JSON object:
             }
           }
         } catch (err: any) {
-          console.warn(`Voice briefing generation with ${model} in ${selectedLang} failed:`, err?.message || err);
+          console.warn(`Voice briefing generation with ${model} in ${selectedLang} timed out or 503:`, err?.message || err);
+          break; // Avoid compounding delays during demo
         }
       }
     }
