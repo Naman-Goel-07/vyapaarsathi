@@ -1,0 +1,16 @@
+{
+  "name": "VyapaarSathi",
+  "short_name": "VyapaarSathi",
+  "description": "Government Action Tracker for MSMEs and CAs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
