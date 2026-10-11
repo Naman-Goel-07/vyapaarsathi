@@ -17,12 +17,20 @@ export async function POST(request: Request) {
       form = 'Form GST ASMT-10',
       issue = 'Discrepancy in Input Tax Credit',
       deadline,
-      penaltyAmount = 0,
+      penaltyAmount = null,
       businessName = 'M/s Registered Taxpayer',
-      dinNumber = 'DIN-20261074XXXXXXXXXX',
+      dinNumber = null,
       documents = [],
       autoFile = false
     } = body;
+
+    const resolvedDin = (dinNumber && String(dinNumber).trim().length > 0)
+      ? String(dinNumber).trim()
+      : '[DIN TO BE CONFIRMED]';
+
+    const resolvedDemand = (penaltyAmount !== null && penaltyAmount !== undefined && Number(penaltyAmount) > 0)
+      ? `₹${Number(penaltyAmount).toLocaleString('en-IN')}`
+      : '[DEMAND AMOUNT TO BE CONFIRMED]';
 
     const arn = `AA07${new Date().getMonth() + 1}${new Date().getFullYear().toString().slice(-2)}${Math.floor(100000 + Math.random() * 900000)}Z`;
 
@@ -41,13 +49,13 @@ STATUTORY NOTICE DETAILS:
 - Form / Section: ${form} (Scrutiny of Returns under Section 61 of the CGST Act, 2017)
 - Taxpayer Name: ${businessName}
 - Alleged Issue / Discrepancy: ${issue}
-- Reference DIN: ${dinNumber}
-- Statutory Demand / Alleged Penalty: ₹${Number(penaltyAmount).toLocaleString('en-IN')}
+- Reference DIN: ${resolvedDin}
+- Statutory Demand / Alleged Penalty: ${resolvedDemand}
 - Evidentiary Documents Attached: ${documents.length > 0 ? documents.join(', ') : 'Purchase registers, invoices, and bank statements'}
 
 REQUIREMENTS:
 1. Address the notice to "${authority}".
-2. Reference the DIN: "${dinNumber}" and Date of Notice clearly.
+2. Reference the DIN: "${resolvedDin}" and Date of Notice clearly. If DIN is "[DIN TO BE CONFIRMED]", keep that exact placeholder. If Demand is "[DEMAND AMOUNT TO BE CONFIRMED]", keep that exact placeholder. Never invent a DIN or penalty amount.
 3. Preliminary Objections / Submissions: Affirm that the taxpayer is a compliant, bona fide registered entity.
 4. Detailed Parawise Rebuttal citing:
    - Section 16(2) of the CGST Act, 2017 (four statutory conditions for ITC eligibility satisfied)
@@ -109,13 +117,13 @@ FORMAT YOUR RESPONSE AS CLEAN, BEAUTIFULLY FORMATTED HTML (using standard <h2>, 
     </div>
     <div class="text-right">
       <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-      <p><strong>Notice Ref DIN:</strong> ${dinNumber}</p>
+      <p><strong>Notice Ref DIN:</strong> ${resolvedDin}</p>
       <p><strong>Form Ref:</strong> ${form}</p>
     </div>
   </div>
 
   <div class="py-1">
-    <p><strong>SUBJECT:</strong> Detailed Written Submission and Explanation in response to Notice Ref: <u>${dinNumber}</u> dated under Section 61 of the CGST Act, 2017.</p>
+    <p><strong>SUBJECT:</strong> Detailed Written Submission and Explanation in response to Notice Ref: <u>${resolvedDin}</u> dated under Section 61 of the CGST Act, 2017.</p>
   </div>
 
   <div class="space-y-3">
@@ -132,7 +140,7 @@ FORMAT YOUR RESPONSE AS CLEAN, BEAUTIFULLY FORMATTED HTML (using standard <h2>, 
       1.1 The Taxpayer is a law-abiding registered entity with an unblemished compliance record. All periodic returns (GSTR-1 and GSTR-3B) have been furnished timely along with full discharge of applicable tax liabilities.
     </p>
     <p>
-      1.2 It is submitted that the alleged discrepancy of <strong>₹${Number(penaltyAmount).toLocaleString('en-IN')}</strong> in Input Tax Credit (ITC) arose strictly due to timing differences in reporting by the counter-party suppliers, and not on account of any ineligible or fraudulent claim.
+      1.2 It is submitted that the alleged discrepancy of <strong>${resolvedDemand}</strong> in Input Tax Credit (ITC) arose strictly due to timing differences in reporting by the counter-party suppliers, and not on account of any ineligible or fraudulent claim.
     </p>
 
     <h3 class="font-bold text-sm border-b pb-1 mt-4">2. STATUTORY SATISFACTION UNDER SECTION 16(2)</h3>

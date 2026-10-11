@@ -40,6 +40,7 @@ export interface DocketFormData {
   confidence: number
   rawFileUrl?: string | null
   modelUsed?: string
+  fallbackUsed?: boolean
 }
 
 interface QueuedFile {
@@ -236,7 +237,8 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
         documents: extracted.documents || [],
         confidence: typeof extracted.confidence === 'number' ? extracted.confidence : 0.90,
         rawFileUrl: dataUrl,
-        modelUsed: json.model || 'Gemini 3.5 Flash'
+        modelUsed: json.model || 'Gemini 3.5 Flash',
+        fallbackUsed: Boolean(json.fallbackUsed)
       })
 
       // Remove from queue and open reviewed docket modal
@@ -645,7 +647,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
                   FORM 7-A: NOTICE INTAKE TRANSCRIPT
                 </h3>
                 <p className="text-xs text-gray-300 font-mono">
-                  Official Statutory Extraction Record • {docketData.modelUsed ? `Verified via ${docketData.modelUsed}` : 'Verified via Gemini 3.5 Flash'}
+                  Official Statutory Extraction Record • {docketData.modelUsed ? `Extracted by ${docketData.modelUsed}` : 'Extracted by Gemini 3.5 Flash'}
                 </p>
               </div>
 
@@ -676,6 +678,14 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
                 )}
               </div>
             </div>
+
+            {/* PRESET SAMPLE NOTICE WARNING BANNER */}
+            {docketData.fallbackUsed && (
+              <div className="bg-amber-50 border-b border-amber-300 p-3 px-4 text-xs flex items-center gap-2 text-amber-900 font-semibold">
+                <AlertTriangle size={15} className="shrink-0 text-amber-700" />
+                <span>Sample notice: preset data, not AI-extracted</span>
+              </div>
+            )}
 
             {/* MODAL IN-CONTEXT ERROR BANNER */}
             {modalError && (

@@ -5,24 +5,38 @@ import {
   Calendar,
   Clock,
   Send,
-  Bell,
-  CheckCircle2,
-  AlertTriangle,
   MessageSquare,
-  Sparkles,
-  PhoneCall,
+  AlertTriangle,
   Loader2
 } from 'lucide-react'
 
 interface CalendarDeskProps {
   deadline?: string | null
   noticeId: string
+  createdAt?: string | null
   businessName?: string
+}
+
+function getISTStatus(targetDate: Date): 'Upcoming' | 'Date passed' {
+  const now = new Date()
+  const todayIST = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+  const targetIST = targetDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+  return targetIST < todayIST ? 'Date passed' : 'Upcoming'
+}
+
+function formatDateIST(date: Date): string {
+  return date.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
 }
 
 export default function CalendarDesk({
   deadline,
   noticeId,
+  createdAt,
   businessName = 'Registered MSME'
 }: CalendarDeskProps) {
   const [testChasing, setTestChasing] = useState(false)
@@ -33,15 +47,56 @@ export default function CalendarDesk({
     setTimeout(() => {
       setTestChasing(false)
       setToastMessage(
-        `[DAY 5 ESCALATION TRIGGERED] Automated WhatsApp & SMS alert dispatched to ${businessName}: "Statutory filing deadline in 48 hrs. Missing: Sales Invoices. Tap to upload."`
+        `Preview only: reminders are not sent yet. Automated alert to ${businessName}: Statutory filing deadline approaching. Please check pending evidentiary documents.`
       )
       setTimeout(() => setToastMessage(null), 6000)
-    }, 1000)
+    }, 800)
   }
+
+  const createdDate = createdAt ? new Date(createdAt) : new Date()
+  const day2Date = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000)
+  const day5Date = new Date(createdDate.getTime() + 5 * 24 * 60 * 60 * 1000)
+
+  let finalReminderDate: Date | null = null
+  if (deadline) {
+    const deadlineDate = new Date(deadline)
+    finalReminderDate = new Date(deadlineDate.getTime() - 48 * 60 * 60 * 1000)
+  }
+
+  const stages = [
+    {
+      label: 'T+0 (INTAKE)',
+      date: createdDate,
+      title: 'Notice Ingested',
+      description: 'File opened.'
+    },
+    {
+      label: 'DAY 2 REMINDER',
+      date: day2Date,
+      title: 'CA Reminder',
+      description: 'Verification reminder scheduled for CA Bench.'
+    },
+    {
+      label: 'DAY 5 ESCALATION',
+      date: day5Date,
+      title: 'Owner Escalation',
+      description: 'Alert scheduled if evidentiary records remain pending.'
+    },
+    ...(finalReminderDate
+      ? [
+          {
+            label: '48H BEFORE DEADLINE',
+            date: finalReminderDate,
+            title: 'Final Filing Window',
+            description: 'Final reminder prior to statutory deadline closure.'
+          }
+        ]
+      : [])
+  ]
 
   return (
     <div className="bg-white border border-gray-300 rounded-sm p-5 my-4 space-y-4 shadow-xs text-ink relative">
-      {/* TOAST SIMULATION BANNER */}
+      {/* TOAST PREVIEW BANNER */}
       {toastMessage && (
         <div className="bg-slate-900 text-white p-3 rounded-xs text-xs font-mono flex items-center justify-between border-l-4 border-amber-400 animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
@@ -50,7 +105,7 @@ export default function CalendarDesk({
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-gray-400 hover:text-white text-xs ml-2"
+            className="text-gray-400 hover:text-white text-xs ml-2 cursor-pointer"
           >
             ✕
           </button>
@@ -63,13 +118,13 @@ export default function CalendarDesk({
             <span className="bg-slate-800 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider flex items-center gap-1">
               <Calendar size={11} /> The Calendar Desk
             </span>
-            <span className="font-mono text-xs text-gray-500 font-semibold">
-              Slide 3 & 7 · PG_CRON DEADLINE ENGINE
+            <span className="font-mono text-xs text-gray-500">
+              Preview: escalation schedule based on notice intake date
             </span>
           </div>
           <h4 className="text-base font-serif font-bold text-ink flex items-center gap-2">
             <Clock size={16} className="text-slate-700" />
-            Automated Escalation & Chase Ledger (Zero Follow-up Calls)
+            Statutory Reminder &amp; Escalation Schedule
           </h4>
         </div>
 
@@ -80,72 +135,47 @@ export default function CalendarDesk({
         >
           {testChasing ? (
             <>
-              <Loader2 className="animate-spin" size={13} /> Chasing...
+              <Loader2 className="animate-spin" size={13} /> Loading...
             </>
           ) : (
             <>
-              <Send size={13} /> Trigger Live Test Chase
+              <Send size={13} /> Preview reminder message
             </>
           )}
         </button>
       </div>
 
-      {/* 4-STAGE TIMELINE OF AUTOMATED CHASES */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
-        {/* T0 */}
-        <div className="bg-gray-50 border border-gray-200 p-3 rounded space-y-1">
-          <div className="flex justify-between items-center text-[10px] text-gray-400">
-            <span>T+0 SECONDS</span>
-            <span className="text-forest-green font-bold flex items-center gap-0.5">
-              <CheckCircle2 size={11} /> Executed
-            </span>
-          </div>
-          <p className="font-bold text-ink">Notice Ingested</p>
-          <p className="text-[11px] text-gray-500 font-sans">
-            File opened, 5 statutory tasks generated and assigned.
-          </p>
+      {!deadline ? (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900 font-mono text-xs flex items-center gap-2">
+          <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+          <span>No deadline recorded, so reminders can&apos;t be scheduled.</span>
         </div>
-
-        {/* DAY 2 */}
-        <div className="bg-emerald-50/50 border border-emerald-200 p-3 rounded space-y-1">
-          <div className="flex justify-between items-center text-[10px] text-emerald-800">
-            <span>DAY 2</span>
-            <span className="text-forest-green font-bold flex items-center gap-0.5">
-              <CheckCircle2 size={11} /> Dispatched
-            </span>
-          </div>
-          <p className="font-bold text-ink">CA WhatsApp Reminder</p>
-          <p className="text-[11px] text-gray-600 font-sans">
-            Automated ping to CA Bench requesting invoice verification.
-          </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
+          {stages.map((stage, idx) => {
+            const status = getISTStatus(stage.date)
+            return (
+              <div key={idx} className="bg-gray-50 border border-gray-200 p-3 rounded space-y-1">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-gray-500 uppercase">{stage.label}</span>
+                  <span
+                    className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                      status === 'Date passed'
+                        ? 'bg-gray-200 text-gray-700'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {status}
+                  </span>
+                </div>
+                <p className="font-bold text-ink">{stage.title}</p>
+                <p className="text-[10px] text-gray-500">{formatDateIST(stage.date)}</p>
+                <p className="text-[11px] text-gray-600 font-sans">{stage.description}</p>
+              </div>
+            )
+          })}
         </div>
-
-        {/* DAY 5 */}
-        <div className="bg-amber-50/60 border border-amber-200 p-3 rounded space-y-1">
-          <div className="flex justify-between items-center text-[10px] text-amber-800">
-            <span>DAY 5</span>
-            <span className="text-amber-800 font-bold flex items-center gap-0.5">
-              <AlertTriangle size={11} /> Escalation Point
-            </span>
-          </div>
-          <p className="font-bold text-ink">Escalates to Owner</p>
-          <p className="text-[11px] text-gray-600 font-sans">
-            Automated SMS & voice dispatch if documents remain unuploaded.
-          </p>
-        </div>
-
-        {/* DAY 7 */}
-        <div className="bg-red-50/40 border border-red-200 p-3 rounded space-y-1">
-          <div className="flex justify-between items-center text-[10px] text-post-red">
-            <span>DAY 7 (48h TO SLIP)</span>
-            <span className="text-post-red font-bold">Hard Lock</span>
-          </div>
-          <p className="font-bold text-ink">Final Filing Sprint</p>
-          <p className="text-[11px] text-gray-600 font-sans">
-            Auto-prefills Form GST ASMT-11 for CA signature before penalty triggers.
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

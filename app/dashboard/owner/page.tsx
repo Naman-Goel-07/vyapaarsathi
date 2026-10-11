@@ -53,8 +53,8 @@ export default async function OwnerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* SLIDE 10 ROADMAP: THE COMPLIANCE SCOREBOARD */}
-      <ComplianceScoreboard />
+      {/* THE COMPLIANCE SCOREBOARD */}
+      <ComplianceScoreboard notices={notices || []} />
 
       {/* ORDER 4: DESIGNATED CHARTERED ACCOUNTANT & BUSINESS COUNSEL DESK */}
       <DesignatedCADesk

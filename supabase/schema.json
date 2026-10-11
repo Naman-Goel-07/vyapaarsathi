@@ -1,0 +1,642 @@
+[
+  {
+    "schema_export": {
+      "columns": [
+        {
+          "table": "audit_logs",
+          "column": "id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "table": "audit_logs",
+          "column": "notice_id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "audit_logs",
+          "column": "action_type",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "audit_logs",
+          "column": "actor_id",
+          "type": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "audit_logs",
+          "column": "changes",
+          "type": "jsonb",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "audit_logs",
+          "column": "hash",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "audit_logs",
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "businesses",
+          "column": "id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "table": "businesses",
+          "column": "name",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "businesses",
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "businesses",
+          "column": "owner_id",
+          "type": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "businesses",
+          "column": "ca_id",
+          "type": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "table": "notices",
+          "column": "business_id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "uploaded_by",
+          "type": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "authority",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "form",
+          "type": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "issue",
+          "type": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "deadline",
+          "type": "date",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "status",
+          "type": "USER-DEFINED",
+          "nullable": "NO",
+          "default": "'open'::notice_status"
+        },
+        {
+          "table": "notices",
+          "column": "raw_file_url",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "confidence",
+          "type": "double precision",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "notices",
+          "column": "closed_at",
+          "type": "timestamp with time zone",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "notices",
+          "column": "last_active_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "profiles",
+          "column": "id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "profiles",
+          "column": "role",
+          "type": "USER-DEFINED",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "profiles",
+          "column": "business_id",
+          "type": "uuid",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "profiles",
+          "column": "email",
+          "type": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "profiles",
+          "column": "full_name",
+          "type": "text",
+          "nullable": "YES",
+          "default": null
+        },
+        {
+          "table": "profiles",
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "tasks",
+          "column": "id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "table": "tasks",
+          "column": "notice_id",
+          "type": "uuid",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "tasks",
+          "column": "action",
+          "type": "text",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "tasks",
+          "column": "owner_role",
+          "type": "USER-DEFINED",
+          "nullable": "NO",
+          "default": null
+        },
+        {
+          "table": "tasks",
+          "column": "status",
+          "type": "USER-DEFINED",
+          "nullable": "NO",
+          "default": "'pending'::task_status"
+        },
+        {
+          "table": "tasks",
+          "column": "documents_requested",
+          "type": "jsonb",
+          "nullable": "YES",
+          "default": "'[]'::jsonb"
+        },
+        {
+          "table": "tasks",
+          "column": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": "NO",
+          "default": "timezone('utc'::text, now())"
+        },
+        {
+          "table": "tasks",
+          "column": "completed_at",
+          "type": "timestamp with time zone",
+          "nullable": "YES",
+          "default": null
+        }
+      ],
+      "rls_enabled": [
+        {
+          "table": "profiles",
+          "enabled": true
+        },
+        {
+          "table": "audit_logs",
+          "enabled": true
+        },
+        {
+          "table": "notices",
+          "enabled": true
+        },
+        {
+          "table": "businesses",
+          "enabled": true
+        },
+        {
+          "table": "tasks",
+          "enabled": true
+        }
+      ],
+      "policies": [
+        {
+          "schema": "storage",
+          "table": "objects",
+          "policy": "Allow reads from secure-notices",
+          "command": "SELECT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "(bucket_id = 'secure-notices'::text)",
+          "with_check": null
+        },
+        {
+          "schema": "storage",
+          "table": "objects",
+          "policy": "Allow uploads to secure-notices",
+          "command": "INSERT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "(bucket_id = 'secure-notices'::text)"
+        },
+        {
+          "schema": "storage",
+          "table": "objects",
+          "policy": "Owners can upload notice files",
+          "command": "INSERT",
+          "roles": [
+            "public"
+          ],
+          "using": null,
+          "with_check": "((bucket_id = 'secure-notices'::text) AND (auth.role() = 'authenticated'::text))"
+        },
+        {
+          "schema": "storage",
+          "table": "objects",
+          "policy": "Users can view own business notice files",
+          "command": "SELECT",
+          "roles": [
+            "public"
+          ],
+          "using": "((bucket_id = 'secure-notices'::text) AND (auth.role() = 'authenticated'::text))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "profiles",
+          "policy": "Allow authenticated users to read profiles",
+          "command": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "profiles",
+          "policy": "Allow view of CA profiles",
+          "command": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((role = 'ca'::user_role) OR (auth.uid() = id))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "profiles",
+          "policy": "profiles_insert_policy",
+          "command": "INSERT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "profiles",
+          "policy": "profiles_select_policy",
+          "command": "SELECT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "((id = auth.uid()) OR (get_current_user_role() = 'ca'::text))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "profiles",
+          "policy": "profiles_update_policy",
+          "command": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(id = auth.uid())",
+          "with_check": "(id = auth.uid())"
+        },
+        {
+          "schema": "public",
+          "table": "audit_logs",
+          "policy": "Allow authenticated insert",
+          "command": "INSERT",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "audit_logs",
+          "policy": "Allow authenticated select",
+          "command": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "notices",
+          "policy": "notices_insert_policy",
+          "command": "INSERT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "notices",
+          "policy": "notices_select_policy",
+          "command": "SELECT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "((business_id = get_current_user_business_id()) OR (get_current_user_role() = 'ca'::text))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "notices",
+          "policy": "notices_update_policy",
+          "command": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((business_id = get_current_user_business_id()) OR (get_current_user_role() = 'ca'::text))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "businesses",
+          "policy": "Allow authenticated users to update businesses",
+          "command": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "businesses",
+          "policy": "Allow updating businesses",
+          "command": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "businesses",
+          "policy": "businesses_insert_policy",
+          "command": "INSERT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "businesses",
+          "policy": "businesses_select_policy",
+          "command": "SELECT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "((id = get_current_user_business_id()) OR (get_current_user_role() = 'ca'::text) OR true)",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "businesses",
+          "policy": "businesses_update_policy",
+          "command": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((id = get_current_user_business_id()) OR (get_current_user_role() = 'ca'::text))",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "tasks",
+          "policy": "tasks_insert_policy",
+          "command": "INSERT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "with_check": "true"
+        },
+        {
+          "schema": "public",
+          "table": "tasks",
+          "policy": "tasks_select_policy",
+          "command": "SELECT",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": null
+        },
+        {
+          "schema": "public",
+          "table": "tasks",
+          "policy": "tasks_update_policy",
+          "command": "UPDATE",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "with_check": "true"
+        }
+      ],
+      "functions": [
+        {
+          "name": "update_last_active_at",
+          "security_definer": false,
+          "definition": "CREATE OR REPLACE FUNCTION public.update_last_active_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nbegin\r\n  if TG_TABLE_NAME = 'notices' then\r\n    new.last_active_at = timezone('utc'::text, now());\r\n    return new;\r\n  elsif TG_TABLE_NAME = 'tasks' then\r\n    update notices set last_active_at = timezone('utc'::text, now()) where id = new.notice_id;\r\n    return new;\r\n  end if;\r\nend;\r\n$function$\n"
+        },
+        {
+          "name": "get_current_user_role",
+          "security_definer": true,
+          "definition": "CREATE OR REPLACE FUNCTION public.get_current_user_role()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT role::text FROM public.profiles WHERE id = auth.uid();\r\n$function$\n"
+        },
+        {
+          "name": "create_audit_log",
+          "security_definer": false,
+          "definition": "CREATE OR REPLACE FUNCTION public.create_audit_log()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\ndeclare\r\n  log_hash text;\r\n  action_type text;\r\n  target_notice_id uuid;\r\nbegin\r\n  if TG_OP = 'INSERT' then\r\n    action_type = 'CREATE';\r\n  else\r\n    action_type = 'UPDATE';\r\n  end if;\r\n\r\n  if TG_TABLE_NAME = 'notices' then\r\n    target_notice_id = coalesce(new.id, old.id);\r\n  else\r\n    target_notice_id = coalesce(new.notice_id, old.notice_id);\r\n  end if;\r\n\r\n  -- Tamper evident hash\r\n  log_hash = encode(digest(TG_TABLE_NAME || TG_OP || target_notice_id::text || now()::text, 'sha256'), 'hex');\r\n\r\n  insert into audit_logs (notice_id, action_type, actor_id, changes, hash)\r\n  values (target_notice_id, action_type || '_' || TG_TABLE_NAME, auth.uid(), row_to_json(new), log_hash);\r\n  \r\n  return new;\r\nend;\r\n$function$\n"
+        },
+        {
+          "name": "assign_ca_to_business",
+          "security_definer": true,
+          "definition": "CREATE OR REPLACE FUNCTION public.assign_ca_to_business(p_business_id uuid, p_ca_email text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_ca_profile RECORD;\r\nBEGIN\r\n  SELECT id, email, role, full_name\r\n  INTO v_ca_profile\r\n  FROM public.profiles\r\n  WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_ca_email))\r\n  LIMIT 1;\r\n\r\n  IF NOT FOUND THEN\r\n    RETURN jsonb_build_object(\r\n      'success', false,\r\n      'error', 'No registered account found with email \"' || p_ca_email || '\". The CA must create an account on VyapaarSathi first.'\r\n    );\r\n  END IF;\r\n\r\n  IF v_ca_profile.role <> 'ca' THEN\r\n    RETURN jsonb_build_object(\r\n      'success', false,\r\n      'error', 'The account \"' || p_ca_email || '\" is registered as a Business Owner, not a Chartered Accountant.'\r\n    );\r\n  END IF;\r\n\r\n  UPDATE public.businesses\r\n  SET ca_id = v_ca_profile.id\r\n  WHERE id = p_business_id;\r\n\r\n  RETURN jsonb_build_object(\r\n    'success', true,\r\n    'ca_id', v_ca_profile.id,\r\n    'email', v_ca_profile.email,\r\n    'full_name', v_ca_profile.full_name\r\n  );\r\nEND;\r\n$function$\n"
+        },
+        {
+          "name": "get_current_user_business_id",
+          "security_definer": true,
+          "definition": "CREATE OR REPLACE FUNCTION public.get_current_user_business_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT business_id FROM public.profiles WHERE id = auth.uid();\r\n$function$\n"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "notices",
+          "trigger": "update_notices_last_active",
+          "timing": "BEFORE",
+          "event": "UPDATE",
+          "action": "EXECUTE FUNCTION update_last_active_at()"
+        },
+        {
+          "table": "tasks",
+          "trigger": "update_tasks_last_active",
+          "timing": "AFTER",
+          "event": "INSERT",
+          "action": "EXECUTE FUNCTION update_last_active_at()"
+        },
+        {
+          "table": "tasks",
+          "trigger": "update_tasks_last_active",
+          "timing": "AFTER",
+          "event": "UPDATE",
+          "action": "EXECUTE FUNCTION update_last_active_at()"
+        },
+        {
+          "table": "notices",
+          "trigger": "notice_audit",
+          "timing": "AFTER",
+          "event": "INSERT",
+          "action": "EXECUTE FUNCTION create_audit_log()"
+        },
+        {
+          "table": "notices",
+          "trigger": "notice_audit",
+          "timing": "AFTER",
+          "event": "UPDATE",
+          "action": "EXECUTE FUNCTION create_audit_log()"
+        },
+        {
+          "table": "tasks",
+          "trigger": "task_audit",
+          "timing": "AFTER",
+          "event": "INSERT",
+          "action": "EXECUTE FUNCTION create_audit_log()"
+        },
+        {
+          "table": "tasks",
+          "trigger": "task_audit",
+          "timing": "AFTER",
+          "event": "UPDATE",
+          "action": "EXECUTE FUNCTION create_audit_log()"
+        }
+      ],
+      "storage_buckets": [
+        {
+          "id": "secure-notices",
+          "public": false
+        }
+      ]
+    }
+  }
+]

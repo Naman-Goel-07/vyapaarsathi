@@ -40,8 +40,8 @@ export default async function CADashboard() {
 
   return (
     <div className="space-y-6">
-      {/* SLIDE 10: THE SCOREBOARD */}
-      <ComplianceScoreboard />
+      {/* THE COMPLIANCE SCOREBOARD */}
+      <ComplianceScoreboard notices={notices || []} />
 
       <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-300 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-2 h-full bg-ink"></div>

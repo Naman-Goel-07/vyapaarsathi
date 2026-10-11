@@ -49,7 +49,7 @@ interface VernacularVoiceAssistantProps {
   form: string;
   issue: string;
   deadline?: string | null;
-  penaltyAmount?: number;
+  penaltyAmount?: number | null;
   businessName?: string;
 }
 
@@ -58,7 +58,7 @@ export default function VernacularVoiceAssistant({
   form,
   issue,
   deadline,
-  penaltyAmount = 245000,
+  penaltyAmount = null,
   businessName = 'Vyapaari Ji'
 }: VernacularVoiceAssistantProps) {
   const [selectedLang, setSelectedLang] = useState<LanguageCode>('hinglish');

@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       form = 'Form GST ASMT-10',
       issue = 'Tax discrepancy',
       deadline = '15 days',
-      penaltyAmount = 245000,
+      penaltyAmount = null,
       businessName = 'Vyapaari Ji',
       language = 'hinglish'
     } = body;
@@ -79,9 +79,12 @@ export async function POST(request: Request) {
     const selectedLang: SupportedLanguage = (LANGUAGE_CONFIG[language as SupportedLanguage] ? language : 'hinglish') as SupportedLanguage;
     const config = LANGUAGE_CONFIG[selectedLang];
 
-    const formattedAmount = Number(penaltyAmount) >= 100000 
-      ? `₹${(Number(penaltyAmount) / 100000).toFixed(2)} Lakh`
-      : `₹${Number(penaltyAmount).toLocaleString('en-IN')}`;
+    const hasValidAmount = penaltyAmount !== null && penaltyAmount !== undefined && Number(penaltyAmount) > 0;
+    const formattedAmount = hasValidAmount
+      ? (Number(penaltyAmount) >= 100000 
+          ? `₹${(Number(penaltyAmount) / 100000).toFixed(2)} Lakh`
+          : `₹${Number(penaltyAmount).toLocaleString('en-IN')}`)
+      : 'demand amount not stated';
 
     let script = '';
 
@@ -98,7 +101,7 @@ NOTICE PARTICULARS:
 - Deadline: ${deadline || 'Within 15 days'}
 
 TASK:
-Write a 45-60 word spoken audio script in ${config.scriptName}.
+Write a 45-60 word spoken audio script in ${config.scriptName}. If the amount at stake is "demand amount not stated", explicitly state that the demand amount is not stated or to be confirmed.
 Example style: ${config.example}
 
 STRUCTURE:
@@ -150,32 +153,50 @@ Return strictly a valid JSON object:
     if (!script) {
       switch (selectedLang) {
         case 'hindi':
-          script = `नमस्ते जी! बिल्कुल घबराइए नहीं। यह ${authority} से खरीद और बिक्री के बिलों में ${formattedAmount} के अंतर का सामान्य नोटिस है। पेनल्टी अभी फाइनल नहीं है। आपके सीए साहब ने जवाब तैयार करना शुरू कर दिया है। आप बस पिछले 3 महीने के खरीद बिल हमें भेज दीजिए।`;
+          script = hasValidAmount
+            ? `नमस्ते जी! बिल्कुल घबराइए नहीं। यह ${authority} से खरीद और बिक्री के बिलों में ${formattedAmount} के अंतर का सामान्य नोटिस है। पेनल्टी अभी फाइनल नहीं है। आपके सीए साहब ने जवाब तैयार करना शुरू कर दिया है। आप बस पिछले 3 महीने के खरीद बिल हमें भेज दीजिए।`
+            : `नमस्ते जी! बिल्कुल घबराइए नहीं। यह ${authority} से आया सामान्य नोटिस है (डिमांड राशि स्पष्ट नहीं है - demand amount not stated)। पेनल्टी अभी फाइनल नहीं है। आपके सीए साहब ने जांच शुरू कर दी है। आप बस संबंधित बिल हमें भेज दीजिए।`;
           break;
         case 'gujarati':
-          script = `નમસ્તે જી! જરાય ચિંતા કરશો નહીં. આ ${authority} તરફથી ખરીદી અને વેચાણના બિલોમાં ${formattedAmount} ના તફાવત બાબતે આવેલી સામાન્ય નોટિસ છે. આ દંડ હજુ આખરી નથી. તમારા CA સાહેબે જવાબ તૈયાર કરવાનું શરૂ કરી દીધું છે, માત્ર ખરીદીના બિલો મોકલી આપો.`;
+          script = hasValidAmount
+            ? `નમસ્તે જી! જરાય ચિંતા કરશો નહીં. આ ${authority} તરફથી ખરીદી અને વેચાણના બિલોમાં ${formattedAmount} ના તફાવત બાબતે આવેલી સામાન્ય નોટિસ છે. આ દંડ હજુ આખરી નથી. તમારા CA સાહેબે જવાબ તૈયાર કરવાનું શરૂ કરી દીધું છે, માત્ર ખરીદીના બિલો મોકલી આપો.`
+            : `નમસ્તે જી! જરાય ચિંતા કરશો નહીં. આ ${authority} તરફથી આવેલી સામાન્ય નોટિસ છે (demand amount not stated). આ દંડ હજુ આખરી નથી. તમારા CA સાહેબે તપાસ શરૂ કરી દીધી છે.`;
           break;
         case 'marathi':
-          script = `नमस्कार! मुळीच काळजी करू नका. ही ${authority} कडून खरेदी आणि विक्री बिलांमधील ${formattedAmount} च्या तफावतीची नेहमीची नोटीस आहे. दंड अजून फायनल झालेला नाही. तुमच्या सीए सरांनी उत्तर तयार करण्यास सुरुवात केली आहे, फक्त खरेदी बिले पाठवून द्या.`;
+          script = hasValidAmount
+            ? `नमस्कार! मुळीच काळजी करू नका. ही ${authority} कडून खरेदी आणि विक्री बिलांमधील ${formattedAmount} च्या तफावतीची नेहमीची नोटीस आहे. दंड अजून फायनल झालेला नाही. तुमच्या सीए सरांनी उत्तर तयार करण्यास सुरुवात केली आहे, फक्त खरेदी बिले पाठवून द्या.`
+            : `नमस्कार! मुळीच काळजी करू नका. ही ${authority} कडून आलेली नेहमीची नोटीस आहे (demand amount not stated). दंड अजून फायनल झालेला नाही. तुमच्या सीए सरांनी तपासणी सुरू केली आहे.`;
           break;
         case 'tamil':
-          script = `வணக்கம்! தயவுசெய்து கவலைப்பட வேண்டாம். இது ${authority} இலிருந்து கொள்முதல் மற்றும் விற்பனை ரசீதுகளில் உள்ள ${formattedAmount} வேறுபாட்டிற்கான வழக்கமான நோட்டீஸ் ஆகும். அபராதம் இன்னும் உறுதியாகவில்லை. உங்கள் CA பதில் தயாரிக்கத் தொடங்கிவிட்டார், கொள்முதல் ரசீதுகளை மட்டும் அனுப்பவும்.`;
+          script = hasValidAmount
+            ? `வணக்கம்! தயவுசெய்து கவலைப்பட வேண்டாம். இது ${authority} இலிருந்து கொள்முதல் மற்றும் விற்பனை ரசீதுகளில் உள்ள ${formattedAmount} வேறுபாட்டிற்கான வழக்கமான நோட்டீஸ் ஆகும். அபராதம் இன்னும் உறுதியாகவில்லை. உங்கள் CA பதில் தயாரிக்கத் தொடங்கிவிட்டார், கொள்முதல் ரசீதுகளை மட்டும் அனுப்பவும்.`
+            : `வணக்கம்! தயவுசெய்து கவலைப்பட வேண்டாம். இது ${authority} இலிருந்து வந்த வழக்கமான நோட்டீஸ் (demand amount not stated). அபராதம் இன்னும் உறுதியாகவில்லை. உங்கள் CA ஆய்வு செய்யத் தொடங்கிவிட்டார்.`;
           break;
         case 'telugu':
-          script = `నమస్కారం! అస్సలు భయపడవద్దు. ఇది ${authority} నుండి కొనుగోలు మరియు అమ్మకాల బిల్లులలోని ${formattedAmount} వ్యత్యాసంపై వచ్చిన సాధారణ నోటీసు మాత్రమే. పెనాల్టీ ఇంకా ఖరారు కాలేదు. మీ CA గారు సమాధానం సిద్ధం చేస్తున్నారు, కేవలం కొనుగోలు బిల్లులు పంపించండి.`;
+          script = hasValidAmount
+            ? `నమస్కారం! అస్సలు భయపడవద్దు. ఇది ${authority} నుండి కొనుగోలు మరియు అమ్మకాల బిల్లులలోని ${formattedAmount} వ్యత్యాసంపై వచ్చిన సాధారణ నోటీసు మాత్రమే. పెనాల్టీ ఇంకా ఖరారు కాలేదు. మీ CA గారు సమాధానం సిద్ధం చేస్తున్నారు, కేవలం కొనుగోలు బిల్లులు పంపించండి.`
+            : `నమస్కారం! అస్సలు భయపడవద్దు. ఇది ${authority} నుండి వచ్చిన సాధారణ నోటీసు (demand amount not stated). పెనాల్టీ ఇంకా ఖరారు కాలేదు. మీ CA గారు పరిశీలిస్తున్నారు.`;
           break;
         case 'bengali':
-          script = `নমস্কার! একদম চিন্তা করবেন না। এটি ${authority} থেকে কেনাবেচার বিলে ${formattedAmount} টাকার পার্থক্যের জন্য আসা একটি সাধারণ রুটিন নোটিশ। জরিমানা এখনও চূড়ান্ত নয়। আপনার সিএ সাহেব জবাব তৈরি করা শুরু করেছেন, শুধু ক্রয়ের বিলগুলো পাঠিয়ে দিন।`;
+          script = hasValidAmount
+            ? `নমস্কার! একদম চিন্তা করবেন না। এটি ${authority} থেকে কেনাবেচার বিলে ${formattedAmount} টাকার পার্থক্যের জন্য আসা একটি সাধারণ রুটিন নোটিশ। জরিমানা এখনও চূড়ান্ত নয়। আপনার সিএ সাহেব জবাব তৈরি করা শুরু করেছেন, শুধু ক্রয়ের বিলগুলো পাঠিয়ে দিন।`
+            : `নমস্কার! একদম চিন্তা করবেন না। এটি ${authority} থেকে আসা একটি সাধারণ রুটিন নোটিশ (demand amount not stated)। জরিমানা এখনও চূড়ান্ত নয়। আপনার সিএ সাহেব তদন্ত শুরু করেছেন।`;
           break;
         case 'kannada':
-          script = `ನಮಸ್ಕಾರ! ದಯವಿಟ್ಟು ಆತಂಕಪಡಬೇಡಿ. ಇದು ${authority} ಇಂದ ಖರೀದಿ ಮತ್ತು ಮಾರಾಟದ ಬಿಲ್‌ಗಳಲ್ಲಿ ${formattedAmount} ವ್ಯತ್ಯಾಸದ ಬಗ್ಗೆ ಬಂದಿರುವ ಸಾಮಾನ್ಯ ನೋಟೀಸ್. ದಂಡ ಇನ್ನೂ ಅಂತಿಮವಾಗಿಲ್ಲ. ನಿಮ್ಮ ಸಿಎ ಅವರು ಉತ್ತರ ಸಿದ್ಧಪಡಿಸುತ್ತಿದ್ದಾರೆ, ಖರೀದಿ ಬಿಲ್‌ಗಳನ್ನು ಕಳುಹಿಸಿ.`;
+          script = hasValidAmount
+            ? `ನಮಸ್ಕಾರ! ದಯವಿಟ್ಟು ಆತಂಕಪಡಬೇಡಿ. ಇದು ${authority} ಇಂದ ಖರೀದಿ ಮತ್ತು ಮಾರಾಟದ ಬಿಲ್‌ಗಳಲ್ಲಿ ${formattedAmount} ವ್ಯತ್ಯಾಸದ ಬಗ್ಗೆ ಬಂದಿರುವ ಸಾಮಾನ್ಯ ನೋಟೀಸ್. ದಂಡ ಇನ್ನೂ ಅಂತಿಮವಾಗಿಲ್ಲ. ನಿಮ್ಮ ಸಿಎ ಅವರು ಉತ್ತರ ಸಿದ್ಧಪಡಿಸುತ್ತಿದ್ದಾರೆ, ಖರೀದಿ ಬಿಲ್‌ಗಳನ್ನು ಕಳುಹಿಸಿ.`
+            : `ನಮಸ್ಕಾರ! ದಯವಿಟ್ಟು ಆತಂಕಪಡಬೇಡಿ. ಇದು ${authority} ಇಂದ ಬಂದಿರುವ ಸಾಮಾನ್ಯ ನೋಟೀಸ್ (demand amount not stated). ದಂಡ ಇನ್ನೂ ಅಂತಿಮವಾಗಿಲ್ಲ. ನಿಮ್ಮ ಸಿಎ ಅವರು ಪರಿಶೀಲಿಸುತ್ತಿದ್ದಾರೆ.`;
           break;
         case 'english':
-          script = `Hello! Please do not panic. This is a routine notice from ${authority} regarding an invoice mismatch of ${formattedAmount}. This is not a final penalty. Your CA has already started preparing the legal response. Just share your purchase invoices so we can close this file.`;
+          script = hasValidAmount
+            ? `Hello! Please do not panic. This is a routine notice from ${authority} regarding an invoice mismatch of ${formattedAmount}. This is not a final penalty. Your CA has already started preparing the legal response. Just share your purchase invoices so we can close this file.`
+            : `Hello! Please do not panic. This is a routine notice from ${authority} where the demand amount is not stated. This is not a final penalty. Your CA has already started reviewing the file. Please share your documents so we can clarify this.`;
           break;
         case 'hinglish':
         default:
-          script = `Namaste Ji! Bilkul ghabraane ki zaroorat nahi hai. Yeh ${authority} se purchase aur sale bills me ${formattedAmount} ke mismatch ka routine notice hai. Yeh koi final penalty nahi hai. Aapke CA sahab ne reply taiyaar karna shuru kar diya hai, bas pichhle 3 mahine ke purchase bills share kar dijiye.`;
+          script = hasValidAmount
+            ? `Namaste Ji! Bilkul ghabraane ki zaroorat nahi hai. Yeh ${authority} se purchase aur sale bills me ${formattedAmount} ke mismatch ka routine notice hai. Yeh koi final penalty nahi hai. Aapke CA sahab ne reply taiyaar karna shuru kar diya hai, bas pichhle 3 mahine ke purchase bills share kar dijiye.`
+            : `Namaste Ji! Bilkul ghabraane ki zaroorat nahi hai. Yeh ${authority} se aaya routine notice hai jisme demand amount not stated hai. Yeh koi final penalty nahi hai. Aapke CA sahab ne review shuru kar diya hai.`;
           break;
       }
     }

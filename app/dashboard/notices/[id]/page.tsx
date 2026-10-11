@@ -52,6 +52,21 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
     .eq('notice_id', notice.id)
     .order('created_at', { ascending: true })
 
+  // Query other closed or filed notices for the same business with the same form
+  const { data: pastNotices } = await supabase
+    .from('notices')
+    .select('id, form, issue, deadline, status, created_at')
+    .eq('business_id', notice.business_id)
+    .eq('form', notice.form)
+    .in('status', ['filed', 'closed'])
+    .neq('id', notice.id)
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  const rawDemand = extractDemandAmount(notice)
+  const penaltyAmount = rawDemand > 0 ? rawDemand : null
+  const dinNumber = extractDIN(notice) || notice.din_number || null
+
   const userRole = profile?.role || 'owner'
   const backHref = userRole === 'ca' ? '/dashboard/ca' : '/dashboard/owner'
 
@@ -155,7 +170,7 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         form={notice.form}
         issue={notice.issue}
         deadline={notice.deadline}
-        penaltyAmount={extractDemandAmount(notice) || 245000}
+        penaltyAmount={penaltyAmount}
         businessName={(notice.businesses as any)?.name || 'Vyapaari Ji'}
       />
 
@@ -166,24 +181,23 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         form={notice.form}
         issue={notice.issue}
         deadline={notice.deadline}
-        penaltyAmount={extractDemandAmount(notice) || 245000}
+        penaltyAmount={penaltyAmount}
         businessName={(notice.businesses as any)?.name || 'Registered MSME'}
-        dinNumber={extractDIN(notice) || notice.din_number || 'DIN-' + notice.id.slice(0, 8).toUpperCase()}
+        dinNumber={dinNumber}
         currentStatus={notice.status}
         userRole={userRole}
       />
 
-      {/* SLIDE 4 & 8: INSTITUTIONAL MEMORY & PRECEDENT RECALL */}
+      {/* INSTITUTIONAL MEMORY & PRECEDENT RECALL */}
       <InstitutionalMemory
-        form={notice.form}
-        issue={notice.issue}
-        authority={notice.authority}
+        pastNotices={pastNotices || []}
       />
 
-      {/* SLIDE 3, 4 & 7: THE CALENDAR DESK AUTOMATED CHASE ENGINE */}
+      {/* THE CALENDAR DESK AUTOMATED CHASE ENGINE */}
       <CalendarDesk
         deadline={notice.deadline}
         noticeId={notice.id}
+        createdAt={notice.created_at}
         businessName={(notice.businesses as any)?.name || 'Registered MSME'}
       />
 
@@ -219,24 +233,21 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         />
       </div>
 
-      {/* PHASE 5: THE SEAL (TAMPER-EVIDENT AUDIT TRAIL) */}
+      {/* ACTIVITY LOG */}
       <div className="bg-ink p-5 sm:p-6 rounded-xl shadow-sm text-gray-300 space-y-4 font-mono text-xs">
         <div className="flex items-center gap-2 mb-4 border-b border-gray-700 pb-3">
           <ShieldCheck size={16} className="text-emerald-400" />
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Cryptographic Audit Ledger</h3>
-          <span className="ml-auto text-[10px] bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-400/20">SHA-256 SECURED</span>
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Activity log</h3>
         </div>
         <div className="space-y-3 opacity-80">
           <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-l-2 border-gray-700 pl-3">
             <span className="text-gray-500">[{new Date(notice.created_at).toISOString()}]</span>
             <span className="text-white">NOTICE_LOGGED</span>
-            <span className="text-gray-500 break-all sm:w-1/2 text-right">hash: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08</span>
           </div>
-          {tasks?.map((t: any, i: number) => (
+          {tasks?.map((t: any) => (
             <div key={t.id} className="flex flex-col sm:flex-row sm:justify-between gap-1 border-l-2 border-gray-700 pl-3">
               <span className="text-gray-500">[{new Date(t.created_at).toISOString()}]</span>
-              <span className="text-white">TASK_{t.status.toUpperCase()}</span>
-              <span className="text-gray-500 break-all sm:w-1/2 text-right">hash: {Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('')}</span>
+              <span className="text-white">TASK_{t.status.toUpperCase()}: {t.action || 'Task updated'}</span>
             </div>
           ))}
         </div>

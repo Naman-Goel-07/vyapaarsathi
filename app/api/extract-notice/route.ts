@@ -42,38 +42,6 @@ function createFallbackFromSample(sample: SampleNotice) {
   };
 }
 
-const DEFAULT_ASMT_10 = {
-  authority: 'Office of the Assistant Commissioner of Central Tax, Delhi',
-  form: 'Form GST ASMT-10',
-  issue: 'Discrepancy between Input Tax Credit (ITC) claimed in Form GSTR-3B and available in Form GSTR-2B for FY 2024-25 (Excess ITC claimed: ₹2,45,000)',
-  deadline: '2026-10-25',
-  action: 'Explain reasons for discrepancies in Form GST ASMT-11 or pay short-paid tax with interest',
-  documents: ['Form GSTR-3B monthly return', 'Form GSTR-2B auto-drafted statement', 'Original Inward Tax Invoices'],
-  owner_role: 'ca' as const,
-  confidence: 0.94,
-  din_number: 'DIN-20261074910294',
-  dinNumber: 'DIN-20261074910294',
-  penalty_amount: 245000,
-  penaltyAmount: 245000,
-};
-
-function detectFallbackFromText(text: string) {
-  const lower = text.toLowerCase();
-  if (lower.includes('asmt') || lower.includes('asmt-10') || lower.includes('245000') || lower.includes('2,45,000') || lower.includes('gstr-2b')) {
-    return DEFAULT_ASMT_10;
-  }
-  if (lower.includes('gst') || lower.includes('drc-01') || lower.includes('itc') || lower.includes('cgst') || lower.includes('notice')) {
-    return createFallbackFromSample(getSampleNoticeById('gst-drc-01') || SAMPLE_NOTICES[0]);
-  }
-  if (lower.includes('148a') || lower.includes('income tax') || lower.includes('pan') || lower.includes('ay 2023-24')) {
-    return createFallbackFromSample(getSampleNoticeById('it-148a') || SAMPLE_NOTICES[1]);
-  }
-  if (lower.includes('epfo') || lower.includes('provident') || lower.includes('7a') || lower.includes('14b')) {
-    return createFallbackFromSample(getSampleNoticeById('epfo-7a') || SAMPLE_NOTICES[2]);
-  }
-  return DEFAULT_ASMT_10;
-}
-
 function formatNoticeData(parsed: any, fallbackDin = '', fallbackPenalty = 0) {
   const roleNorm = (parsed?.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
   const din = parsed?.din_number || parsed?.dinNumber || fallbackDin;
@@ -257,8 +225,7 @@ export async function POST(request: Request) {
           ]);
 
           if (parsed) {
-            const randomDin = 'DIN-' + Math.floor(100000 + Math.random() * 900000);
-            const data = formatNoticeData(parsed, randomDin, 0);
+            const data = formatNoticeData(parsed, '', 0);
             return NextResponse.json({
               success: true,
               aiSuccess: true,
@@ -268,19 +235,19 @@ export async function POST(request: Request) {
             });
           }
         } catch (geminiErr) {
-          console.warn('Gemini text extraction failed, falling back to keyword matcher:', geminiErr);
+          console.warn('Gemini text extraction failed:', geminiErr);
         }
       }
-      // Resilient text fallback
-      const fallbackData = detectFallbackFromText(sampleText);
+
       return NextResponse.json({
-        success: true,
+        success: false,
         aiSuccess: false,
-        data: fallbackData,
-        needsReview: false,
-        fallbackUsed: true,
-        model: 'text-fallback'
-      });
+        extractionFailed: true,
+        error: 'Gemini AI transcription temporarily unavailable for text input. No simulated data was substituted.',
+        data: null,
+        needsReview: true,
+        model: 'none'
+      }, { status: 200 });
     }
 
     // CASE 3: Storage File URL provided

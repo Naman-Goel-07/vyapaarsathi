@@ -26,9 +26,9 @@ interface StatutoryReplyGeneratorProps {
   form: string
   issue: string
   deadline?: string | null
-  penaltyAmount?: number
+  penaltyAmount?: number | null
   businessName?: string
-  dinNumber?: string
+  dinNumber?: string | null
   currentStatus?: string
   userRole?: string
 }
@@ -39,9 +39,9 @@ export default function StatutoryReplyGenerator({
   form,
   issue,
   deadline,
-  penaltyAmount = 245000,
+  penaltyAmount = null,
   businessName = 'Registered MSME',
-  dinNumber = 'DIN-20261074XXXXXXXXXX',
+  dinNumber = null,
   currentStatus = 'open',
   userRole = 'ca'
 }: StatutoryReplyGeneratorProps) {
