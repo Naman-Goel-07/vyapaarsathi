@@ -8,6 +8,7 @@ import VernacularVoiceAssistant from '@/components/VernacularVoiceAssistant'
 import InstitutionalMemory from '@/components/InstitutionalMemory'
 import CalendarDesk from '@/components/CalendarDesk'
 import NoticePDFViewer from '@/components/NoticePDFViewer'
+import { extractDemandAmount, extractDIN } from '@/lib/demand'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
 
 export default async function NoticeDetailPage({ params }: { params: { id: string } }) {
@@ -143,7 +144,7 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         form={notice.form}
         issue={notice.issue}
         deadline={notice.deadline}
-        penaltyAmount={notice.penalty_amount || 0}
+        penaltyAmount={extractDemandAmount(notice)}
         confidence={notice.confidence || 0}
         userRole={userRole}
       />
@@ -154,7 +155,7 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         form={notice.form}
         issue={notice.issue}
         deadline={notice.deadline}
-        penaltyAmount={notice.penalty_amount || 245000}
+        penaltyAmount={extractDemandAmount(notice) || 245000}
         businessName={(notice.businesses as any)?.name || 'Vyapaari Ji'}
       />
 
@@ -165,9 +166,9 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         form={notice.form}
         issue={notice.issue}
         deadline={notice.deadline}
-        penaltyAmount={notice.penalty_amount || 245000}
+        penaltyAmount={extractDemandAmount(notice) || 245000}
         businessName={(notice.businesses as any)?.name || 'Registered MSME'}
-        dinNumber={notice.din_number || 'DIN-' + notice.id.slice(0, 8).toUpperCase()}
+        dinNumber={extractDIN(notice) || notice.din_number || 'DIN-' + notice.id.slice(0, 8).toUpperCase()}
         currentStatus={notice.status}
         userRole={userRole}
       />

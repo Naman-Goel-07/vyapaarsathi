@@ -288,19 +288,53 @@ export async function updateNoticeParticulars({
       }
     }
 
-    const { error } = await supabase
-      .from('notices')
-      .update({
-        authority,
-        form,
-        issue,
-        deadline: formattedDeadline,
-        penalty_amount: penaltyAmount || 0,
-        confidence: 1.0 // Certified by CA / verified
-      })
-      .eq('id', noticeId)
+    const penaltyNum = typeof penaltyAmount === 'number'
+      ? penaltyAmount
+      : parseFloat(String(penaltyAmount || 0).replace(/[^0-9.]/g, '')) || 0
 
-    if (error) throw error
+    let enrichedIssue = (issue || '').trim()
+    if (penaltyNum > 0 && !enrichedIssue.includes(`₹${penaltyNum}`)) {
+      enrichedIssue = `[Demand: ₹${penaltyNum.toLocaleString('en-IN')}]\n\n${enrichedIssue}`
+    }
+
+    const baseUpdate: any = {
+      authority,
+      form,
+      issue: enrichedIssue,
+      deadline: formattedDeadline,
+      confidence: 1.0 // Certified by CA / verified
+    }
+
+    // Attempt update with penalty_amount column if supported, otherwise fallback
+    if (penaltyNum > 0) {
+      const { error: dynamicError } = await supabase
+        .from('notices')
+        .update({ ...baseUpdate, penalty_amount: penaltyNum })
+        .eq('id', noticeId)
+
+      if (dynamicError) {
+        if (
+          dynamicError.message?.includes('penalty_amount') ||
+          dynamicError.code === 'PGRST204' ||
+          dynamicError.message?.includes('schema cache')
+        ) {
+          console.warn('notices table lacks penalty_amount column, applying base update:', dynamicError.message)
+          const { error: baseError } = await supabase
+            .from('notices')
+            .update(baseUpdate)
+            .eq('id', noticeId)
+          if (baseError) throw baseError
+        } else {
+          throw dynamicError
+        }
+      }
+    } else {
+      const { error } = await supabase
+        .from('notices')
+        .update(baseUpdate)
+        .eq('id', noticeId)
+      if (error) throw error
+    }
 
     revalidatePath(`/dashboard/notices/${noticeId}`)
     revalidatePath('/dashboard/owner')
@@ -311,4 +345,186 @@ export async function updateNoticeParticulars({
     return { success: false, error: err.message || 'Failed to update notice particulars' }
   }
 }
+
+export async function sealNoticeDocket({
+  businessId,
+  authority,
+  form,
+  issue,
+  deadline,
+  dinNumber,
+  penaltyAmount,
+  rawFileUrl,
+  confidence,
+  action,
+  ownerRole,
+  documents
+}: {
+  businessId?: string
+  authority: string
+  form: string
+  issue: string
+  deadline?: string | null
+  dinNumber?: string
+  penaltyAmount?: number
+  rawFileUrl?: string | null
+  confidence?: number
+  action?: string
+  ownerRole?: 'owner' | 'ca'
+  documents?: string[]
+}) {
+  try {
+    const supabase = createClient()
+    let effectiveBusinessId = businessId
+
+    // If businessId is not provided or empty, resolve from active user session/profile
+    if (!effectiveBusinessId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('business_id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profile?.business_id) {
+          effectiveBusinessId = profile.business_id
+        } else {
+          const { data: newBiz } = await supabase
+            .from('businesses')
+            .insert({ name: 'Enterprise', owner_id: user.id })
+            .select()
+            .single()
+
+          if (newBiz) {
+            effectiveBusinessId = newBiz.id
+            await supabase
+              .from('profiles')
+              .update({ business_id: newBiz.id })
+              .eq('id', user.id)
+          }
+        }
+      }
+    }
+
+    if (!effectiveBusinessId) {
+      return { success: false, error: 'Business account required to seal docket into database. Please log in.' }
+    }
+
+    let formattedDeadline: string | null = null
+    if (deadline) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+        formattedDeadline = deadline
+      } else {
+        const parsed = new Date(deadline)
+        if (!isNaN(parsed.getTime())) {
+          formattedDeadline = parsed.toISOString().split('T')[0]
+        }
+      }
+    }
+
+    const penaltyAmountNum = typeof penaltyAmount === 'number'
+      ? penaltyAmount
+      : parseFloat(String(penaltyAmount || 0).replace(/[^0-9.]/g, '')) || 0
+
+    // Preserve DIN and statutory demand in issue text so downstream views read them dynamically
+    let enrichedIssue = (issue || '').trim()
+    const tags: string[] = []
+    if (dinNumber && !enrichedIssue.includes(dinNumber)) {
+      tags.push(`DIN: ${dinNumber}`)
+    }
+    if (penaltyAmountNum > 0 && !enrichedIssue.includes(`₹${penaltyAmountNum}`)) {
+      tags.push(`Demand: ₹${penaltyAmountNum.toLocaleString('en-IN')}`)
+    }
+    if (tags.length > 0) {
+      enrichedIssue = `[${tags.join(' | ')}]\n\n${enrichedIssue}`
+    }
+
+    // Guaranteed core table columns
+    const basePayload: any = {
+      business_id: effectiveBusinessId,
+      authority: authority || 'Issuing Authority',
+      form: form || 'Statutory Notice',
+      issue: enrichedIssue,
+      deadline: formattedDeadline,
+      raw_file_url: rawFileUrl || null,
+      confidence: typeof confidence === 'number' ? confidence : 0.9,
+      status: 'open'
+    }
+
+    let notice: any = null
+
+    // 1. Dynamic insert with automatic schema compatibility fallback
+    if (penaltyAmountNum > 0 || dinNumber) {
+      const dynamicPayload: any = { ...basePayload }
+      if (penaltyAmountNum > 0) dynamicPayload.penalty_amount = penaltyAmountNum
+      if (dinNumber) dynamicPayload.din_number = dinNumber
+
+      const { data, error } = await supabase
+        .from('notices')
+        .insert(dynamicPayload)
+        .select()
+        .single()
+
+      if (!error && data) {
+        notice = data
+      } else if (
+        error &&
+        (error.message?.includes('penalty_amount') ||
+         error.message?.includes('din_number') ||
+         error.code === 'PGRST204' ||
+         error.message?.includes('schema cache'))
+      ) {
+        console.warn('notices table lacks penalty_amount/din_number column in schema cache. Inserting base schema with enriched metadata:', error.message)
+        const fallback = await supabase
+          .from('notices')
+          .insert(basePayload)
+          .select()
+          .single()
+
+        if (fallback.error) throw fallback.error
+        notice = fallback.data
+      } else if (error) {
+        throw error
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('notices')
+        .insert(basePayload)
+        .select()
+        .single()
+
+      if (error) throw error
+      notice = data
+    }
+
+    if (!notice?.id) {
+      throw new Error('Notice docket was sealed but returned an empty identifier.')
+    }
+
+    // 2. Insert initial task record for CA or Owner
+    const { error: taskErr } = await supabase
+      .from('tasks')
+      .insert({
+        notice_id: notice.id,
+        action: action || 'Prepare and submit statutory response',
+        owner_role: ownerRole || 'ca',
+        documents_requested: documents || [],
+        status: 'pending'
+      })
+
+    if (taskErr) {
+      console.warn('Warning: Non-fatal task registration error:', taskErr)
+    }
+
+    revalidatePath('/dashboard/owner')
+    revalidatePath('/dashboard/ca')
+    return { success: true, noticeId: notice.id }
+  } catch (err: any) {
+    console.error('Error in sealNoticeDocket:', err)
+    return { success: false, error: err.message || 'Failed to seal docket into database' }
+  }
+}
+
+
 

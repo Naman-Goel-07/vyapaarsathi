@@ -26,8 +26,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 # local env files
+.env*
 .env*.local
 .env
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -41,12 +43,19 @@ next-env.d.ts
 
 # Antigravity, Subagents & Test Suites
 .agents/
+.agent/
+.teamwork/
 tests/
 test/
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
+__tests__/
+e2e/
+test-results/
+playwright-report/
+*.test.*
+*.spec.*
+check_schema.*
+temp/
+tmp/
 
 # Documentation & Scratch Files
 *.md

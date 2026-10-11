@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import {
   UploadCloud,
@@ -24,7 +25,7 @@ import {
   FileWarning,
   ShieldAlert
 } from 'lucide-react'
-import { routeNoticeToCABench } from '@/app/actions'
+import { routeNoticeToCABench, sealNoticeDocket } from '@/app/actions'
 
 export interface DocketFormData {
   authority: string
@@ -59,6 +60,8 @@ interface AiFailedDocket {
 }
 
 export default function UploadNotice({ businessId }: { businessId: string }) {
+  const router = useRouter()
+  const isSubmittingRef = useRef(false)
   const [isDragging, setIsDragging] = useState(false)
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([])
   const [loading, setLoading] = useState(false)
@@ -68,6 +71,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
   const [newDocText, setNewDocText] = useState('')
   const [savingDocket, setSavingDocket] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [modalError, setModalError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // AI Failure State and CA Bench routing
@@ -218,13 +222,18 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
 
       // CASE: Gemini AI extraction succeeded with real document particulars!
       const extracted = json.data
+      const rawPenalty = extracted.penalty_amount ?? extracted.penaltyAmount ?? 0
+      const parsedPenalty = typeof rawPenalty === 'number'
+        ? rawPenalty
+        : parseFloat(String(rawPenalty).replace(/[^0-9.]/g, '')) || 0
+
       setDocketData({
         authority: extracted.authority || 'Issuing Authority',
         form: extracted.form || 'Statutory Notice',
         dinNumber: extracted.din_number || extracted.dinNumber || '',
         issue: extracted.issue || '',
         deadline: extracted.deadline || '',
-        penaltyAmount: extracted.penalty_amount || extracted.penaltyAmount || 0,
+        penaltyAmount: parsedPenalty,
         action: extracted.action || 'Prepare and submit statutory response',
         owner_role: (extracted.owner_role as 'owner' | 'ca') || 'ca',
         documents: extracted.documents || [],
@@ -235,6 +244,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
 
       // Remove from queue and open reviewed docket modal
       removeQueuedFile(queued.id)
+      setModalError(null)
       setIsModalOpen(true)
     } catch (err: any) {
       setErrorMessage(err.message || 'Error processing document')
@@ -264,8 +274,8 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       setAiFailedDocket(null)
       setSuccessMessage(`Docket successfully sealed! "${failedDoc.name}" has been forwarded directly to your Chartered Accountant Bench for full legal review.`)
       setTimeout(() => {
-        window.location.reload()
-      }, 1500)
+        window.location.href = '/dashboard/owner'
+      }, 1200)
     } catch (err: any) {
       console.error('Error dispatching to CA Bench:', err)
       setErrorMessage('Failed to route document to CA Bench: ' + (err.message || 'Unknown error'))
@@ -292,68 +302,55 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
     })
     setShowPdfPreview(true)
     setAiFailedDocket(null)
+    setModalError(null)
     setIsModalOpen(true)
   }
 
-  // Save the reviewed docket to Supabase `notices` and `tasks`
+  // Save the reviewed docket to database via sealNoticeDocket server action
   const handleConfirmAndSeal = async () => {
-    if (!docketData) return
+    if (!docketData || savingDocket || isSubmittingRef.current) return
+    isSubmittingRef.current = true
     setSavingDocket(true)
+    setModalError(null)
     setErrorMessage(null)
 
     try {
-      let formattedDeadline: string | null = null
-      if (docketData.deadline) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(docketData.deadline)) {
-          formattedDeadline = docketData.deadline
-        } else {
-          const parsedDate = new Date(docketData.deadline)
-          if (!isNaN(parsedDate.getTime())) {
-            formattedDeadline = parsedDate.toISOString().split('T')[0]
-          }
-        }
+      const res = await sealNoticeDocket({
+        businessId,
+        authority: docketData.authority,
+        form: docketData.form,
+        issue: docketData.issue,
+        deadline: docketData.deadline,
+        dinNumber: docketData.dinNumber,
+        penaltyAmount: docketData.penaltyAmount,
+        rawFileUrl: docketData.rawFileUrl || null,
+        confidence: docketData.confidence,
+        action: docketData.action,
+        ownerRole: docketData.owner_role,
+        documents: docketData.documents
+      })
+
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to seal docket into database')
       }
 
-      // 1. Create Notice Record
-      const { data: notice, error: noticeErr } = await supabase
-        .from('notices')
-        .insert({
-          business_id: businessId,
-          authority: docketData.authority,
-          form: docketData.form,
-          issue: docketData.issue,
-          deadline: formattedDeadline,
-          raw_file_url: docketData.rawFileUrl || null,
-          confidence: docketData.confidence,
-          penalty_amount: docketData.penaltyAmount || 0,
-          status: 'open'
-        })
-        .select()
-        .single()
-
-      if (noticeErr) throw noticeErr
-
-      // 2. Create Initial Task Record
-      const { error: taskErr } = await supabase
-        .from('tasks')
-        .insert({
-          notice_id: notice.id,
-          action: docketData.action,
-          owner_role: docketData.owner_role,
-          documents_requested: docketData.documents,
-          status: 'pending'
-        })
-
-      if (taskErr) throw taskErr
-
+      // Close modal and clear state
       setIsModalOpen(false)
       setDocketData(null)
-      window.location.reload()
+      setShowPdfPreview(false)
+
+      // Direct redirection to owner dashboard to display newly created notice
+      try {
+        router.refresh()
+      } catch (e) {
+        // Safe fallback in static / non-standard router contexts
+      }
+      window.location.href = '/dashboard/owner'
     } catch (err: any) {
       console.error('Error saving sealed docket:', err)
-      setErrorMessage('Failed to seal docket into database: ' + (err.message || 'Unknown error'))
-    } finally {
+      setModalError(err.message || 'Failed to seal docket into database')
       setSavingDocket(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -683,6 +680,27 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
               </div>
             </div>
 
+            {/* MODAL IN-CONTEXT ERROR BANNER */}
+            {modalError && (
+              <div className="bg-red-50 border-b border-red-300 p-3 px-4 text-xs flex items-start justify-between gap-3 text-post-red">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={15} className="shrink-0 mt-0.5 text-post-red" />
+                  <div className="space-y-0.5">
+                    <span className="font-bold">Error Sealing Docket:</span>
+                    <p className="font-mono text-[11px] text-red-900">{modalError}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalError(null)}
+                  className="text-red-700 hover:text-red-900 p-0.5"
+                  aria-label="Dismiss error"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
             {/* DOCKET BODY - SIDE-BY-SIDE WITH PDF IF PREVIEW TOGGLED */}
             <div className="flex-1 overflow-y-auto flex flex-col md:flex-row bg-paper/95 text-xs text-ink divide-y md:divide-y-0 md:divide-x divide-gray-300">
               {/* EDITABLE STATUTORY FIELDS */}
@@ -914,9 +932,10 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
                     setIsModalOpen(false)
                     setDocketData(null)
                     setShowPdfPreview(false)
+                    setModalError(null)
                   }}
                   disabled={savingDocket}
-                  className="px-3 py-2 text-xs font-semibold text-gray-600 hover:text-ink border border-gray-300 rounded-xs bg-white hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2 text-xs font-semibold text-gray-600 hover:text-ink border border-gray-300 rounded-xs bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Discard / Cancel
                 </button>
@@ -925,7 +944,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
                   type="button"
                   onClick={handleConfirmAndSeal}
                   disabled={savingDocket}
-                  className="px-4 py-2 text-xs font-bold font-mono tracking-wider uppercase text-white bg-forest-green hover:bg-emerald-800 rounded-xs shadow-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold font-mono tracking-wider uppercase text-white bg-forest-green hover:bg-emerald-800 rounded-xs shadow-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingDocket ? (
                     <>

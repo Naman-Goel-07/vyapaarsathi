@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Clock, ShieldCheck, Filter } from 'lucide-react'
+import { extractDemandAmount } from '@/lib/demand'
 
 type Notice = {
   id: string
@@ -12,6 +13,10 @@ type Notice = {
   deadline?: string | null
   status?: string
   penalty_amount?: number
+  penalty?: number
+  demand_amount?: number
+  amount?: number
+  metadata?: any
   business_id?: string
   businesses?: { id?: string; name: string } | null
 }
@@ -46,7 +51,7 @@ export default function CATriageHeatmap({
       if (daysLeft <= 3) threatLevel = 'CRITICAL'
       else if (daysLeft <= 7) threatLevel = 'WARNING'
       
-      const penalty = notice.penalty_amount || 50000
+      const penalty = extractDemandAmount(notice) || 50000
       // Higher score is worse. If overdue, make score massively high.
       threatScore = daysLeft <= 0 ? penalty * 100 : penalty / daysLeft
     } else if (notice.status === 'filed' || notice.status === 'closed') {
@@ -142,7 +147,7 @@ export default function CATriageHeatmap({
                       {(notice.businesses as any)?.name?.toUpperCase() || 'UNKNOWN CLIENT'}
                     </span>
                     <span className="font-mono text-xs font-bold text-ink bg-gray-100 px-2 py-0.5 rounded-sm">
-                      ₹{((notice.penalty_amount || 0) / 1000).toFixed(1)}k RISK
+                      ₹{((extractDemandAmount(notice) || 0) / 1000).toFixed(1)}k RISK
                     </span>
                   </div>
 

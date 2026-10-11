@@ -5,6 +5,7 @@ import UploadNotice from '@/components/UploadNotice'
 import DynamicPenaltyDesk from '@/components/DynamicPenaltyDesk'
 import ComplianceScoreboard from '@/components/ComplianceScoreboard'
 import DesignatedCADesk from '@/components/DesignatedCADesk'
+import { extractDemandAmount } from '@/lib/demand'
 
 export default async function OwnerDashboard() {
   const supabase = createClient()
@@ -99,6 +100,12 @@ export default async function OwnerDashboard() {
                 <div className="space-y-1">
                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Deadline</p>
                    <p className="text-sm text-post-red font-bold font-mono">{notice.deadline}</p>
+                </div>
+              )}
+              {extractDemandAmount(notice) > 0 && (
+                <div className="space-y-1">
+                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Statutory Exposure</p>
+                   <p className="text-sm text-ink font-bold font-mono">₹{extractDemandAmount(notice).toLocaleString('en-IN')}</p>
                 </div>
               )}
               <div className="pt-4 mt-4 border-t border-gray-100">

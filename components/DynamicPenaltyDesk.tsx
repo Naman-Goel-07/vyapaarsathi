@@ -12,6 +12,7 @@ import {
   Calendar,
   CheckCircle2
 } from 'lucide-react'
+import { extractDemandAmount } from '@/lib/demand'
 
 interface DynamicPenaltyDeskProps {
   notices: Array<{
@@ -22,6 +23,10 @@ interface DynamicPenaltyDeskProps {
     deadline?: string | null
     status?: string
     penalty_amount?: number
+    penalty?: number
+    demand_amount?: number
+    amount?: number
+    metadata?: any
   }>
 }
 
@@ -39,7 +44,7 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
 
   notices.forEach(notice => {
     if (notice.status !== 'closed' && notice.status !== 'filed') {
-      const demand = notice.penalty_amount || 0
+      const demand = extractDemandAmount(notice)
       totalTaxDemand += demand
 
       if (notice.deadline) {

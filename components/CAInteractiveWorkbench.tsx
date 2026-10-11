@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import CAClientPortfolio, { ClientBusinessSummary } from '@/components/CAClientPortfolio'
 import DynamicPenaltyDesk from '@/components/DynamicPenaltyDesk'
 import CATriageHeatmap from '@/components/CATriageHeatmap'
+import { extractDemandAmount } from '@/lib/demand'
 
 interface NoticeItem {
   id: string
@@ -13,6 +14,10 @@ interface NoticeItem {
   deadline?: string | null
   status?: string
   penalty_amount?: number
+  penalty?: number
+  demand_amount?: number
+  amount?: number
+  metadata?: any
   business_id?: string
   businesses?: { id?: string; name: string } | null
 }
@@ -67,7 +72,7 @@ export default function CAInteractiveWorkbench({
       const current = businessMap.get(bizId)!
       if (n.status !== 'closed' && n.status !== 'filed') {
         current.activeNoticesCount += 1
-        current.totalRisk += n.penalty_amount || 0
+        current.totalRisk += extractDemandAmount(n)
       }
     }
   })
