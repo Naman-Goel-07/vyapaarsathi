@@ -42,50 +42,83 @@ function createFallbackFromSample(sample: SampleNotice) {
   };
 }
 
+const DEFAULT_ASMT_10 = {
+  authority: 'Office of the Assistant Commissioner of Central Tax, Delhi',
+  form: 'Form GST ASMT-10',
+  issue: 'Discrepancy between Input Tax Credit (ITC) claimed in Form GSTR-3B and available in Form GSTR-2B for FY 2024-25 (Excess ITC claimed: ₹2,45,000)',
+  deadline: '2026-10-25',
+  action: 'Explain reasons for discrepancies in Form GST ASMT-11 or pay short-paid tax with interest',
+  documents: ['Form GSTR-3B monthly return', 'Form GSTR-2B auto-drafted statement', 'Original Inward Tax Invoices'],
+  owner_role: 'ca' as const,
+  confidence: 0.94,
+  din_number: 'DIN-20261074910294',
+  dinNumber: 'DIN-20261074910294',
+  penalty_amount: 245000,
+  penaltyAmount: 245000,
+};
+
 function detectFallbackFromText(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes('asmt') || lower.includes('asmt-10') || lower.includes('245000') || lower.includes('2,45,000') || lower.includes('gstr-2b')) {
-    return {
-      authority: 'Office of the Assistant Commissioner of Central Tax, Delhi',
-      form: 'Form GST ASMT-10',
-      issue: 'Discrepancy between Input Tax Credit (ITC) claimed in Form GSTR-3B and available in Form GSTR-2B for FY 2024-25 (Excess ITC claimed: ₹2,45,000)',
-      deadline: '2026-10-25',
-      action: 'Explain reasons for discrepancies in Form GST ASMT-11 or pay short-paid tax with interest',
-      documents: ['Form GSTR-3B monthly return', 'Form GSTR-2B auto-drafted statement', 'Original Inward Tax Invoices'],
-      owner_role: 'ca' as const,
-      confidence: 0.94,
-      din_number: 'DIN-20261074910294',
-      dinNumber: 'DIN-20261074910294',
-      penalty_amount: 245000,
-      penaltyAmount: 245000,
-    };
+    return DEFAULT_ASMT_10;
   }
   if (lower.includes('gst') || lower.includes('drc-01') || lower.includes('itc') || lower.includes('cgst') || lower.includes('notice')) {
-    const s = getSampleNoticeById('gst-drc-01') || SAMPLE_NOTICES[0];
-    return createFallbackFromSample(s);
+    return createFallbackFromSample(getSampleNoticeById('gst-drc-01') || SAMPLE_NOTICES[0]);
   }
   if (lower.includes('148a') || lower.includes('income tax') || lower.includes('pan') || lower.includes('ay 2023-24')) {
-    const s = getSampleNoticeById('it-148a') || SAMPLE_NOTICES[1];
-    return createFallbackFromSample(s);
+    return createFallbackFromSample(getSampleNoticeById('it-148a') || SAMPLE_NOTICES[1]);
   }
   if (lower.includes('epfo') || lower.includes('provident') || lower.includes('7a') || lower.includes('14b')) {
-    const s = getSampleNoticeById('epfo-7a') || SAMPLE_NOTICES[2];
-    return createFallbackFromSample(s);
+    return createFallbackFromSample(getSampleNoticeById('epfo-7a') || SAMPLE_NOTICES[2]);
   }
+  return DEFAULT_ASMT_10;
+}
+
+function formatNoticeData(parsed: any, fallbackDin = '', fallbackPenalty = 0) {
+  const roleNorm = (parsed?.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
+  const din = parsed?.din_number || parsed?.dinNumber || fallbackDin;
+  const penalty = typeof parsed?.penalty_amount === 'number'
+    ? parsed.penalty_amount
+    : (typeof parsed?.penaltyAmount === 'number'
+        ? parsed.penaltyAmount
+        : (parseInt(String(parsed?.penalty_amount || parsed?.penaltyAmount || fallbackPenalty).replace(/[^0-9]/g, '')) || fallbackPenalty));
+
   return {
-    authority: 'Office of the Assistant Commissioner of Central Tax, Delhi',
-    form: 'Form GST ASMT-10',
-    issue: 'Discrepancy between Input Tax Credit (ITC) claimed in Form GSTR-3B and available in Form GSTR-2B for FY 2024-25',
-    deadline: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-    action: 'Explain reasons for discrepancies in Form GST ASMT-11 or submit reconciliation',
-    documents: ['Form GSTR-3B', 'Form GSTR-2B', 'Inward Tax Invoices'],
-    owner_role: 'ca' as const,
-    confidence: 0.92,
-    din_number: 'DIN-20261074910294',
-    dinNumber: 'DIN-20261074910294',
-    penalty_amount: 245000,
-    penaltyAmount: 245000,
+    authority: parsed?.authority || 'Issuing Authority',
+    form: parsed?.form || 'Statutory Notice',
+    issue: parsed?.issue || '',
+    deadline: parsed?.deadline || null,
+    action: parsed?.action || 'Prepare and submit statutory response',
+    documents: Array.isArray(parsed?.documents) ? parsed.documents : [],
+    owner_role: roleNorm,
+    confidence: typeof parsed?.confidence === 'number' ? parsed.confidence : 0.90,
+    dinNumber: din,
+    din_number: din,
+    penaltyAmount: penalty,
+    penalty_amount: penalty,
   };
+}
+
+async function callGemini(parts: any[], model = 'gemini-3.5-flash', timeoutMs = 25000) {
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error(`TIMEOUT_${timeoutMs}`)), timeoutMs)
+  );
+
+  const response = await Promise.race([
+    ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: noticeSchema,
+        temperature: 0.1,
+      }
+    }),
+    timeoutPromise
+  ]) as any;
+
+  if (!response?.text) return null;
+  return JSON.parse(response.text);
 }
 
 export async function POST(request: Request) {
@@ -118,55 +151,20 @@ export async function POST(request: Request) {
           // Retry each model up to 2 times on transient 503/429
           for (let attempt = 1; attempt <= 2; attempt++) {
             try {
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('TIMEOUT_25S')), 25000)
-              );
-
-              const response = await Promise.race([
-                ai.models.generateContent({
-                  model: modelName,
-                  contents: [
-                    {
-                      role: 'user',
-                      parts: [
-                        {
-                          inlineData: {
-                            data: fileBase64,
-                            mimeType,
-                          }
-                        },
-                        {
-                          text: "Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
-                        }
-                      ],
-                    }
-                  ],
-                  config: {
-                    responseMimeType: "application/json",
-                    responseSchema: noticeSchema,
-                    temperature: 0.1,
+              const parsed = await callGemini([
+                {
+                  inlineData: {
+                    data: fileBase64,
+                    mimeType,
                   }
-                }),
-                timeoutPromise
-              ]) as any;
+                },
+                {
+                  text: "Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
+                }
+              ], modelName, 25000);
 
-              if (response?.text) {
-                const parsed = JSON.parse(response.text);
-                const roleNorm = (parsed.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
-                const data = {
-                  authority: parsed.authority || 'Issuing Authority',
-                  form: parsed.form || 'Statutory Notice',
-                  issue: parsed.issue || '',
-                  deadline: parsed.deadline || null,
-                  action: parsed.action || 'Prepare and submit statutory response',
-                  documents: Array.isArray(parsed.documents) ? parsed.documents : [],
-                  owner_role: roleNorm,
-                  confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.90,
-                  dinNumber: parsed.din_number || parsed.dinNumber || '',
-                  din_number: parsed.din_number || parsed.dinNumber || '',
-                  penaltyAmount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
-                  penalty_amount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
-                };
+              if (parsed) {
+                const data = formatNoticeData(parsed);
                 return NextResponse.json({
                   success: true,
                   aiSuccess: true,
@@ -187,7 +185,6 @@ export async function POST(request: Request) {
         }
 
         // CRITICAL: NEVER substitute fake demo notice data when user uploaded a real file!
-        // Return clear failure report so UI can route directly to CA Bench without fake DRC-01 data.
         return NextResponse.json({
           success: false,
           aiSuccess: false,
@@ -199,7 +196,6 @@ export async function POST(request: Request) {
         }, { status: 200 });
       }
 
-      // If no API key configured, report that AI key is missing rather than faking data
       return NextResponse.json({
         success: false,
         aiSuccess: false,
@@ -217,34 +213,14 @@ export async function POST(request: Request) {
       if (sample) {
         if (apiKey) {
           try {
-            const response = await ai.models.generateContent({
-              model: 'gemini-3.5-flash',
-              contents: [
-                {
-                  role: 'user',
-                  parts: [
-                    {
-                      text: `Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose.\n\nDOCUMENT TEXT:\n${sample.sampleText}`
-                    }
-                  ]
-                }
-              ],
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: noticeSchema,
-                temperature: 0.1,
+            const parsed = await callGemini([
+              {
+                text: `Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose.\n\nDOCUMENT TEXT:\n${sample.sampleText}`
               }
-            });
+            ]);
 
-            if (response.text) {
-              const parsed = JSON.parse(response.text);
-              const data = {
-                ...parsed,
-                din_number: parsed.din_number || sample.dinNumber,
-                dinNumber: parsed.din_number || sample.dinNumber,
-                penalty_amount: parsed.penalty_amount || sample.penaltyAmount,
-                penaltyAmount: parsed.penalty_amount || sample.penaltyAmount,
-              };
+            if (parsed) {
+              const data = formatNoticeData(parsed, sample.dinNumber, sample.penaltyAmount);
               return NextResponse.json({
                 success: true,
                 aiSuccess: true,
@@ -274,34 +250,15 @@ export async function POST(request: Request) {
     if (sampleText) {
       if (apiKey) {
         try {
-          const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: `Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose.\n\nDOCUMENT TEXT:\n${sampleText}`
-                  }
-                ]
-              }
-            ],
-            config: {
-              responseMimeType: "application/json",
-              responseSchema: noticeSchema,
-              temperature: 0.1,
+          const parsed = await callGemini([
+            {
+              text: `Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose.\n\nDOCUMENT TEXT:\n${sampleText}`
             }
-          });
+          ]);
 
-          if (response.text) {
-            const parsed = JSON.parse(response.text);
-            const data = {
-              ...parsed,
-              dinNumber: parsed.din_number || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
-              din_number: parsed.din_number || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
-              penaltyAmount: parsed.penalty_amount || 0,
-              penalty_amount: parsed.penalty_amount || 0,
-            };
+          if (parsed) {
+            const randomDin = 'DIN-' + Math.floor(100000 + Math.random() * 900000);
+            const data = formatNoticeData(parsed, randomDin, 0);
             return NextResponse.json({
               success: true,
               aiSuccess: true,
@@ -351,40 +308,20 @@ export async function POST(request: Request) {
 
       if (apiKey) {
         try {
-          const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    inlineData: {
-                      data: base64Data,
-                      mimeType,
-                    }
-                  },
-                  {
-                    text: "Extract the details from this government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
-                  }
-                ]
+          const parsed = await callGemini([
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType,
               }
-            ],
-            config: {
-              responseMimeType: "application/json",
-              responseSchema: noticeSchema,
-              temperature: 0.1,
+            },
+            {
+              text: "Extract the details from this government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
             }
-          });
+          ]);
 
-          if (response.text) {
-            const parsed = JSON.parse(response.text);
-            const data = {
-              ...parsed,
-              dinNumber: parsed.din_number || '',
-              din_number: parsed.din_number || '',
-              penaltyAmount: parsed.penalty_amount || 0,
-              penalty_amount: parsed.penalty_amount || 0,
-            };
+          if (parsed) {
+            const data = formatNoticeData(parsed, '', 0);
             return NextResponse.json({
               success: true,
               aiSuccess: true,

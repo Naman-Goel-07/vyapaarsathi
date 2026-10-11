@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/client'
 import {
   FileText,
   Search,
@@ -189,10 +189,7 @@ export default function CollaborativePipeline({
   const [arnInput, setArnInput] = useState(`ARN-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`)
 
   // Supabase client instance
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   // Fetch initial data if not provided
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/client'
 import {
   UploadCloud,
   Loader2,
@@ -83,10 +83,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   // Validate dropped or selected file
   const validateFile = (file: File): { valid: boolean; reason?: string } => {
