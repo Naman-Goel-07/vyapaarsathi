@@ -89,77 +89,87 @@ export default function CAClientPortfolio({
 
       {/* Client Businesses Grid */}
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {businesses.map((biz) => {
-          const isSelected = selectedBusinessId === biz.id
-          return (
-            <div
-              key={biz.id}
-              onClick={() => onSelectBusiness(isSelected ? null : biz.id)}
-              className={`p-4 rounded-sm border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
-                isSelected
-                  ? 'border-ink bg-amber-50/40 shadow-xs'
-                  : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50/60'
-              }`}
-            >
-              {isSelected && (
-                <div className="absolute top-0 right-0 bg-ink text-white text-[9px] font-mono px-2 py-0.5 font-bold uppercase tracking-wider">
-                  Selected
-                </div>
-              )}
+        {businesses.length === 0 ? (
+          <div className="col-span-full py-12 px-4 text-center border-2 border-dashed border-gray-200 rounded-sm bg-gray-50/50">
+            <Building2 className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+            <h4 className="font-serif font-bold text-sm text-ink">No Retained Client Entities Yet</h4>
+            <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
+              No business has designated your CA account yet. When a business enters your registered CA email in their &quot;Retained Chartered Accountant&quot; desk, their entity and pending dockets will appear here automatically.
+            </p>
+          </div>
+        ) : (
+          businesses.map((biz) => {
+            const isSelected = selectedBusinessId === biz.id
+            return (
+              <div
+                key={biz.id}
+                onClick={() => onSelectBusiness(isSelected ? null : biz.id)}
+                className={`p-4 rounded-sm border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
+                  isSelected
+                    ? 'border-ink bg-amber-50/40 shadow-xs'
+                    : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50/60'
+                }`}
+              >
+                {isSelected && (
+                  <div className="absolute top-0 right-0 bg-ink text-white text-[9px] font-mono px-2 py-0.5 font-bold uppercase tracking-wider">
+                    Selected
+                  </div>
+                )}
 
-              <div className="space-y-1">
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-serif font-bold text-sm text-ink truncate pr-14" title={biz.name}>
-                    {biz.name}
-                  </h4>
+                <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-serif font-bold text-sm text-ink truncate pr-14" title={biz.name}>
+                      {biz.name}
+                    </h4>
+                  </div>
+
+                  <p className="text-[11px] font-mono text-gray-500 flex items-center gap-1">
+                    <Building2 size={11} className="text-gray-400" />
+                    <span>REF: {biz.id.slice(0, 8).toUpperCase()}</span>
+                  </p>
                 </div>
 
-                <p className="text-[11px] font-mono text-gray-500 flex items-center gap-1">
-                  <Building2 size={11} className="text-gray-400" />
-                  <span>REF: {biz.id.slice(0, 8).toUpperCase()}</span>
-                </p>
+                {/* Metrics */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 font-mono text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase block">Active Dockets</span>
+                    <span className="font-bold text-ink flex items-center gap-1">
+                      {biz.activeNoticesCount > 0 ? (
+                        <span className={biz.hasCritical ? 'text-post-red' : 'text-ink'}>
+                          {biz.activeNoticesCount} Notices
+                        </span>
+                      ) : (
+                        <span className="text-forest-green flex items-center gap-1">
+                          <CheckCircle size={11} /> 0 Clear
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-400 uppercase block">Monetary Risk</span>
+                    <span className="font-bold text-ink">
+                      ₹{(biz.totalRisk || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    className={`w-full py-1 text-[11px] font-mono font-bold uppercase rounded-xs border transition-colors ${
+                      isSelected
+                        ? 'bg-ink text-white border-ink'
+                        : 'bg-gray-100 text-gray-700 border-gray-200 group-hover:border-ink'
+                    }`}
+                  >
+                    {isSelected ? '✓ Showing This Client' : 'Focus Client View'}
+                  </button>
+                </div>
               </div>
-
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 font-mono text-xs">
-                <div>
-                  <span className="text-[10px] text-gray-400 uppercase block">Active Dockets</span>
-                  <span className="font-bold text-ink flex items-center gap-1">
-                    {biz.activeNoticesCount > 0 ? (
-                      <span className={biz.hasCritical ? 'text-post-red' : 'text-ink'}>
-                        {biz.activeNoticesCount} Notices
-                      </span>
-                    ) : (
-                      <span className="text-forest-green flex items-center gap-1">
-                        <CheckCircle size={11} /> 0 Clear
-                      </span>
-                    )}
-                  </span>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[10px] text-gray-400 uppercase block">Monetary Risk</span>
-                  <span className="font-bold text-ink">
-                    ₹{(biz.totalRisk || 0).toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-1">
-                <button
-                  type="button"
-                  className={`w-full py-1 text-[11px] font-mono font-bold uppercase rounded-xs border transition-colors ${
-                    isSelected
-                      ? 'bg-ink text-white border-ink'
-                      : 'bg-gray-100 text-gray-700 border-gray-200 group-hover:border-ink'
-                  }`}
-                >
-                  {isSelected ? '✓ Showing This Client' : 'Focus Client View'}
-                </button>
-              </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
     </div>
   )

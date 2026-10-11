@@ -42,7 +42,7 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = createClient()
   
-  const email = formData.get('email') as string
+  const email = (formData.get('email') as string).trim().toLowerCase()
   const password = formData.get('password') as string
   const role = formData.get('role') as string // 'owner' or 'ca'
   const businessName = formData.get('businessName') as string
@@ -62,7 +62,7 @@ export async function signup(formData: FormData) {
     if (role === 'owner' && businessName) {
       const { data: business, error: businessError } = await supabase
         .from('businesses')
-        .insert({ name: businessName })
+        .insert({ name: businessName.trim(), owner_id: data.user.id })
         .select()
         .single()
       
@@ -137,11 +137,11 @@ export async function assignCAToBusiness(
     }
   }
 
-  // 2. Direct query fallback
+  // 2. Direct query fallback (case-insensitive)
   const { data: caProfile, error: profileErr } = await supabase
     .from('profiles')
     .select('id, email, role, full_name')
-    .eq('email', trimmedEmail)
+    .ilike('email', trimmedEmail)
     .maybeSingle()
 
   if (profileErr) {

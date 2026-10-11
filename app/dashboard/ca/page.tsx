@@ -18,17 +18,25 @@ export default async function CADashboard() {
 
   if (profile?.role !== 'ca') return redirect('/dashboard/owner')
 
-  // Fetch all notices with their business details
-  const { data: notices } = await supabase
-    .from('notices')
-    .select('*, businesses(id, name)')
-    .order('created_at', { ascending: false })
-
-  // Fetch all client businesses
+  // Fetch only client businesses that have explicitly retained this CA
   const { data: businesses } = await supabase
     .from('businesses')
     .select('*')
+    .eq('ca_id', user.id)
     .order('created_at', { ascending: false })
+
+  const businessIds = (businesses || []).map((b) => b.id)
+
+  // Fetch notices only for this CA's retained client businesses
+  let notices: any[] = []
+  if (businessIds.length > 0) {
+    const { data: clientNotices } = await supabase
+      .from('notices')
+      .select('*, businesses(id, name)')
+      .in('business_id', businessIds)
+      .order('created_at', { ascending: false })
+    notices = clientNotices || []
+  }
 
   return (
     <div className="space-y-6">

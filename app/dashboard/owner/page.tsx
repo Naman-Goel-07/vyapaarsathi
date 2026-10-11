@@ -57,7 +57,7 @@ export default async function OwnerDashboard() {
 
       {/* ORDER 4: DESIGNATED CHARTERED ACCOUNTANT & BUSINESS COUNSEL DESK */}
       <DesignatedCADesk
-        businessName={business?.name || 'Bharat Retailers Pvt Ltd'}
+        businessName={business?.name || 'My Enterprise'}
         businessId={profile.business_id}
         initialCA={initialCA}
       />
