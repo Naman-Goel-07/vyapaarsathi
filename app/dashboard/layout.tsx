@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { LogOut, ArrowLeftRight } from 'lucide-react'
-import { switchRole } from '@/app/actions'
+import { LogOut } from 'lucide-react'
+import WhatsAppBotSimulator from '@/components/WhatsAppBotSimulator'
 
 export default async function DashboardLayout({
   children,
@@ -25,8 +25,6 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  const targetRole = profile?.role === 'owner' ? 'ca' : 'owner'
-  const switchAction = switchRole.bind(null, targetRole)
 
   return (
     <div className="min-h-screen bg-paper flex flex-col font-sans text-ink">
@@ -49,14 +47,6 @@ export default async function DashboardLayout({
             </span>
           </div>
           
-          <div className="h-6 w-px bg-gray-300 mx-1"></div>
-
-          <form action={switchAction}>
-            <button className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-ink transition-colors px-3 py-1.5 rounded-md hover:bg-gray-100">
-              <ArrowLeftRight size={16} /> 
-              <span className="hidden sm:inline">Switch to {profile?.role === 'owner' ? 'CA View' : 'Owner View'}</span>
-            </button>
-          </form>
 
           <form action="/auth/signout" method="post">
             <button className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-post-red transition-colors px-3 py-1.5 rounded-md hover:bg-gray-100">
@@ -69,6 +59,9 @@ export default async function DashboardLayout({
       <main className="flex-1 w-full relative">
         {children}
       </main>
+
+      {/* ZERO-FRICTION MSME WHATSAPP BOT GATEWAY */}
+      <WhatsAppBotSimulator />
     </div>
   )
 }

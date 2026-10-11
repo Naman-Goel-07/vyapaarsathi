@@ -1,6 +1,25 @@
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role === 'ca') {
+      redirect('/dashboard/ca');
+    } else {
+      redirect('/dashboard/owner');
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-paper text-ink">
       <div className="max-w-md w-full bg-white rounded-sm shadow-sm border-2 border-ink p-8 text-center space-y-6">

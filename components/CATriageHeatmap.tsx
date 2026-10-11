@@ -12,16 +12,28 @@ type Notice = {
   deadline?: string | null
   status?: string
   penalty_amount?: number
-  businesses?: { name: string } | null
+  business_id?: string
+  businesses?: { id?: string; name: string } | null
 }
 
-export default function CATriageHeatmap({ notices }: { notices: Notice[] }) {
+export default function CATriageHeatmap({
+  notices,
+  selectedBusinessId
+}: {
+  notices: Notice[]
+  selectedBusinessId?: string | null
+}) {
   const [filter, setFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING' | 'SAFE'>('ALL')
   
   const today = new Date()
 
+  // Filter by selected business if specified
+  const scopedNotices = selectedBusinessId
+    ? notices.filter(n => n.business_id === selectedBusinessId || (n.businesses as any)?.id === selectedBusinessId)
+    : notices
+
   // Decorate notices with threat levels
-  const decoratedNotices = notices.map(notice => {
+  const decoratedNotices = scopedNotices.map(notice => {
     let threatLevel: 'CRITICAL' | 'WARNING' | 'SAFE' = 'SAFE'
     let threatScore = 0
     let daysLeft = 999

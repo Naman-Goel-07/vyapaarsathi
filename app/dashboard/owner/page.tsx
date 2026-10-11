@@ -4,6 +4,7 @@ import Link from 'next/link'
 import UploadNotice from '@/components/UploadNotice'
 import DynamicPenaltyDesk from '@/components/DynamicPenaltyDesk'
 import ComplianceScoreboard from '@/components/ComplianceScoreboard'
+import DesignatedCADesk from '@/components/DesignatedCADesk'
 
 export default async function OwnerDashboard() {
   const supabase = createClient()
@@ -19,6 +20,30 @@ export default async function OwnerDashboard() {
 
   if (profile?.role !== 'owner') return redirect('/dashboard/ca')
 
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('id, name, ca_id')
+    .eq('id', profile.business_id)
+    .single()
+
+  let initialCA = null
+  if (business?.ca_id) {
+    const { data: caProfile } = await supabase
+      .from('profiles')
+      .select('id, email, role, full_name')
+      .eq('id', business.ca_id)
+      .maybeSingle()
+
+    if (caProfile) {
+      initialCA = {
+        id: caProfile.id,
+        email: caProfile.email,
+        name: caProfile.full_name || caProfile.email.split('@')[0].toUpperCase(),
+        firm: 'Retained Statutory Counsel'
+      }
+    }
+  }
+
   const { data: notices } = await supabase
     .from('notices')
     .select('*')
@@ -29,6 +54,13 @@ export default async function OwnerDashboard() {
     <div className="space-y-6">
       {/* SLIDE 10 ROADMAP: THE COMPLIANCE SCOREBOARD */}
       <ComplianceScoreboard />
+
+      {/* ORDER 4: DESIGNATED CHARTERED ACCOUNTANT & BUSINESS COUNSEL DESK */}
+      <DesignatedCADesk
+        businessName={business?.name || 'Bharat Retailers Pvt Ltd'}
+        businessId={profile.business_id}
+        initialCA={initialCA}
+      />
 
       <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-300 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-2 h-full bg-ink"></div>

@@ -39,7 +39,7 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
 
   notices.forEach(notice => {
     if (notice.status !== 'closed' && notice.status !== 'filed') {
-      const demand = notice.penalty_amount || 245000
+      const demand = notice.penalty_amount || 0
       totalTaxDemand += demand
 
       if (notice.deadline) {
@@ -63,10 +63,10 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
     }
   })
 
-  // Fallback defaults for demo if no notices in DB are yet overdue
-  const displayOverdueCount = overdueCount > 0 ? overdueCount : (simulatedDays > 0 ? 1 : 1)
-  const displayTaxDemand = totalTaxDemand > 0 ? totalTaxDemand : 245000
-  const displayLateFees = totalLateFees > 0 ? totalLateFees : (simulatedDays > 0 ? Math.min(2000, simulatedDays * 50) : 0)
+  // Real database metrics
+  const displayOverdueCount = overdueCount
+  const displayTaxDemand = totalTaxDemand
+  const displayLateFees = totalLateFees
   
   // Fight vs Settle Logic
   // Option A: Settle within 30 days (Sec 73: Tax + 25% Penalty)
