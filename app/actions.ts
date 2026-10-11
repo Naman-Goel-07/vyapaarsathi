@@ -199,3 +199,116 @@ export async function unassignCAFromBusiness(businessId: string) {
   revalidatePath('/dashboard/ca')
   return { success: !error }
 }
+
+export async function routeNoticeToCABench({
+  businessId,
+  rawFileUrl,
+  fileName,
+  notes
+}: {
+  businessId: string
+  rawFileUrl: string
+  fileName?: string
+  notes?: string
+}) {
+  const supabase = createClient()
+  const cleanName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Statutory Document'
+
+  try {
+    // 1. Create notice record with zero confidence and raw file attached
+    const { data: notice, error: noticeErr } = await supabase
+      .from('notices')
+      .insert({
+        business_id: businessId,
+        authority: 'Statutory Authority (Pending CA Verification)',
+        form: cleanName,
+        issue: notes || `Direct client dispatch (${fileName || 'PDF Document'}). Forwarded directly to CA Bench for manual examination, statutory classification, and reply preparation.`,
+        deadline: null,
+        raw_file_url: rawFileUrl || null,
+        confidence: 0.0,
+        status: 'open'
+      })
+      .select()
+      .single()
+
+    if (noticeErr) throw noticeErr
+
+    // 2. Create initial task for the CA Bench
+    const { error: taskErr } = await supabase
+      .from('tasks')
+      .insert({
+        notice_id: notice.id,
+        action: 'Review original notice PDF in viewer, verify statutory grounds & deadlines, and advise client on response strategy',
+        owner_role: 'ca',
+        status: 'pending',
+        documents_requested: [
+          'Full Original Notice Document (PDF Attached)',
+          'Relevant Books of Account & Inward/Outward Registers'
+        ]
+      })
+
+    if (taskErr) throw taskErr
+
+    revalidatePath('/dashboard/owner')
+    revalidatePath('/dashboard/ca')
+    return { success: true, noticeId: notice.id }
+  } catch (err: any) {
+    console.error('Error routing notice to CA Bench:', err)
+    return { success: false, error: err.message || 'Failed to dispatch docket to CA Bench' }
+  }
+}
+
+export async function updateNoticeParticulars({
+  noticeId,
+  authority,
+  form,
+  issue,
+  deadline,
+  penaltyAmount
+}: {
+  noticeId: string
+  authority: string
+  form: string
+  issue: string
+  deadline?: string | null
+  penaltyAmount?: number
+}) {
+  const supabase = createClient()
+
+  try {
+    let formattedDeadline: string | null = null
+    if (deadline) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+        formattedDeadline = deadline
+      } else {
+        const parsed = new Date(deadline)
+        if (!isNaN(parsed.getTime())) {
+          formattedDeadline = parsed.toISOString().split('T')[0]
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from('notices')
+      .update({
+        authority,
+        form,
+        issue,
+        deadline: formattedDeadline,
+        penalty_amount: penaltyAmount || 0,
+        confidence: 1.0 // Certified by CA / verified
+      })
+      .eq('id', noticeId)
+
+    if (error) throw error
+
+    revalidatePath(`/dashboard/notices/${noticeId}`)
+    revalidatePath('/dashboard/owner')
+    revalidatePath('/dashboard/ca')
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error updating notice particulars:', err)
+    return { success: false, error: err.message || 'Failed to update notice particulars' }
+  }
+}
+

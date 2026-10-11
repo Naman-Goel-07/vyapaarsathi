@@ -7,6 +7,7 @@ import StatutoryReplyGenerator from '@/components/StatutoryReplyGenerator'
 import VernacularVoiceAssistant from '@/components/VernacularVoiceAssistant'
 import InstitutionalMemory from '@/components/InstitutionalMemory'
 import CalendarDesk from '@/components/CalendarDesk'
+import NoticePDFViewer from '@/components/NoticePDFViewer'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
 
 export default async function NoticeDetailPage({ params }: { params: { id: string } }) {
@@ -133,6 +134,19 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
           </div>
         </div>
       </div>
+
+      {/* ORIGINAL STATUTORY NOTICE PDF VIEWER & CA VERIFICATION DESK */}
+      <NoticePDFViewer
+        noticeId={notice.id}
+        rawFileUrl={notice.raw_file_url}
+        authority={notice.authority}
+        form={notice.form}
+        issue={notice.issue}
+        deadline={notice.deadline}
+        penaltyAmount={notice.penalty_amount || 0}
+        confidence={notice.confidence || 0}
+        userRole={userRole}
+      />
 
       {/* AWAAZ: VERNACULAR AUDIO BRIEFING FOR THE VYAPAARI */}
       <VernacularVoiceAssistant

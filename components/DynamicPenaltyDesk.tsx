@@ -68,17 +68,18 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
   const displayTaxDemand = totalTaxDemand
   const displayLateFees = totalLateFees
   
-  // Fight vs Settle Logic
+  // Fight vs Settle Logic (strictly dynamic based on database notices)
+  const hasExposure = displayTaxDemand > 0 || overdueCount > 0
+
   // Option A: Settle within 30 days (Sec 73: Tax + 25% Penalty)
-  const settlePenalty = Math.round(displayTaxDemand * 0.25)
-  const settleTotal = displayTaxDemand + settlePenalty
+  const settlePenalty = hasExposure ? Math.round(displayTaxDemand * 0.25) : 0
+  const settleTotal = hasExposure ? (displayTaxDemand + settlePenalty) : 0
   
   // Option B: Fight and Lose after 1 Year (Tax + 100% Penalty + 18% Interest + Late Fees)
-  const fightPenalty = displayTaxDemand // 100% penalty
-  const fightInterest = Math.round(displayTaxDemand * 0.18) // 1 year 18% p.a.
-  // We use max late fee for a year for calculation
-  const fightLateFee = Math.max(2000, displayLateFees)
-  const fightTotal = displayTaxDemand + fightPenalty + fightInterest + fightLateFee
+  const fightPenalty = hasExposure ? displayTaxDemand : 0 // 100% penalty
+  const fightInterest = hasExposure ? Math.round(displayTaxDemand * 0.18) : 0 // 1 year 18% p.a.
+  const fightLateFee = hasExposure ? Math.max(2000, displayLateFees) : 0
+  const fightTotal = hasExposure ? (displayTaxDemand + fightPenalty + fightInterest + fightLateFee) : 0
 
   return (
     <div className="bg-paper border-2 border-ink rounded-sm p-5 space-y-5 relative overflow-hidden text-ink shadow-sm">

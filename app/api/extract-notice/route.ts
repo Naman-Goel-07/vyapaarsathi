@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
 import { SAMPLE_NOTICES, getSampleNoticeById, type SampleNotice } from '@/lib/sampleNotices';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 
 // Initialize the Gemini client.
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -101,7 +98,7 @@ export async function POST(request: Request) {
 
     // Allow demo/sample requests even if session is not active for agent-as-judge automated runs
     const isSampleRequest = Boolean(sampleId || sampleText);
-    if (!user && !isSampleRequest) {
+    if (!user && !isSampleRequest && !businessId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -114,120 +111,110 @@ export async function POST(request: Request) {
       const mimeType = fileMimeType || 'application/pdf';
       
       if (apiKey) {
-        let tempFilePath: string | null = null;
-        let fileUpload: any = null;
-
-        try {
-          // 1. Write buffer to temporary file for Gemini Files API
-          const fileBuffer = Buffer.from(fileBase64, 'base64');
-          const ext = mimeType.includes('pdf') ? '.pdf' : mimeType.includes('png') ? '.png' : '.jpg';
-          tempFilePath = path.join(os.tmpdir(), `notice-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-          fs.writeFileSync(tempFilePath, fileBuffer);
-
-          // 2. Upload file to Gemini
-          fileUpload = await ai.files.upload(tempFilePath, {
-            mimeType,
-          });
-        } catch (uploadErr) {
-          console.warn('Gemini file upload failed, will fallback to inlineData:', uploadErr);
-        } finally {
-          if (tempFilePath && fs.existsSync(tempFilePath)) {
-            try { fs.unlinkSync(tempFilePath); } catch (_) {}
-          }
-        }
-
-        const candidateModels = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+        const candidateModels = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+        let lastError: any = null;
 
         for (const modelName of candidateModels) {
-          try {
-            const parts: any[] = [];
-            if (fileUpload?.uri) {
-              parts.push({
-                fileData: {
-                  fileUri: fileUpload.uri,
-                  mimeType: fileUpload.mimeType || mimeType,
-                }
-              });
-            } else {
-              parts.push({
-                inlineData: {
-                  data: fileBase64,
-                  mimeType,
-                }
-              });
-            }
+          // Retry each model up to 2 times on transient 503/429
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('TIMEOUT_25S')), 25000)
+              );
 
-            parts.push({
-              text: "Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
-            });
-
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('TIMEOUT_4S')), 4000)
-            );
-
-            const response = await Promise.race([
-              ai.models.generateContent({
-                model: modelName,
-                contents: [
-                  {
-                    role: 'user',
-                    parts,
+              const response = await Promise.race([
+                ai.models.generateContent({
+                  model: modelName,
+                  contents: [
+                    {
+                      role: 'user',
+                      parts: [
+                        {
+                          inlineData: {
+                            data: fileBase64,
+                            mimeType,
+                          }
+                        },
+                        {
+                          text: "Extract the details from this Indian government notice strictly according to the provided JSON schema. Never guess a deadline; if it's not explicitly in the document, leave it blank or null. Do not include any prose."
+                        }
+                      ],
+                    }
+                  ],
+                  config: {
+                    responseMimeType: "application/json",
+                    responseSchema: noticeSchema,
+                    temperature: 0.1,
                   }
-                ],
-                config: {
-                  responseMimeType: "application/json",
-                  responseSchema: noticeSchema,
-                  temperature: 0.1,
-                }
-              }),
-              timeoutPromise
-            ]) as any;
+                }),
+                timeoutPromise
+              ]) as any;
 
-            if (response.text) {
-              const parsed = JSON.parse(response.text);
-              const roleNorm = (parsed.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
-              const data = {
-                ...parsed,
-                owner_role: roleNorm,
-                dinNumber: parsed.din_number || parsed.dinNumber || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
-                din_number: parsed.din_number || parsed.dinNumber || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
-                penaltyAmount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
-                penalty_amount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
-              };
-              return NextResponse.json({
-                data,
-                needsReview: (data.confidence || 1) < 0.80,
-                model: modelName
-              });
+              if (response?.text) {
+                const parsed = JSON.parse(response.text);
+                const roleNorm = (parsed.owner_role || '').toLowerCase().includes('owner') ? 'owner' : 'ca';
+                const data = {
+                  authority: parsed.authority || 'Issuing Authority',
+                  form: parsed.form || 'Statutory Notice',
+                  issue: parsed.issue || '',
+                  deadline: parsed.deadline || null,
+                  action: parsed.action || 'Prepare and submit statutory response',
+                  documents: Array.isArray(parsed.documents) ? parsed.documents : [],
+                  owner_role: roleNorm,
+                  confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.90,
+                  dinNumber: parsed.din_number || parsed.dinNumber || '',
+                  din_number: parsed.din_number || parsed.dinNumber || '',
+                  penaltyAmount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
+                  penalty_amount: typeof parsed.penalty_amount === 'number' ? parsed.penalty_amount : (parseInt(String(parsed.penalty_amount).replace(/[^0-9]/g, '')) || 0),
+                };
+                return NextResponse.json({
+                  success: true,
+                  aiSuccess: true,
+                  data,
+                  needsReview: (data.confidence || 1) < 0.80,
+                  model: modelName
+                });
+              }
+            } catch (geminiErr: any) {
+              lastError = geminiErr;
+              console.warn(`Extraction with ${modelName} (attempt ${attempt}) failed:`, geminiErr?.message || geminiErr);
+              // Brief backoff before retry on 503 or transient spike
+              if (attempt < 2) {
+                await new Promise(r => setTimeout(r, 1500));
+              }
             }
-          } catch (geminiErr: any) {
-            console.warn(`Extraction with ${modelName} timed out or 503:`, geminiErr?.message || geminiErr);
-            // If 503 high demand or timeout, break immediately to avoid 70s freeze
-            break;
           }
         }
-      }
-      
-      // Fast, smart local fallback based on actual PDF buffer contents
-      let decodedContext = '';
-      try {
-        decodedContext = Buffer.from(fileBase64, 'base64').toString('latin1');
-      } catch (_) {}
-      const parsedData = detectFallbackFromText(decodedContext + ' ' + (fileUrl || ''));
 
+        // CRITICAL: NEVER substitute fake demo notice data when user uploaded a real file!
+        // Return clear failure report so UI can route directly to CA Bench without fake DRC-01 data.
+        return NextResponse.json({
+          success: false,
+          aiSuccess: false,
+          extractionFailed: true,
+          error: `Gemini AI transcription temporarily unavailable (${lastError?.message || 'High demand spike / 503'}). No simulated data was substituted.`,
+          data: null,
+          needsReview: true,
+          model: 'none'
+        }, { status: 200 });
+      }
+
+      // If no API key configured, report that AI key is missing rather than faking data
       return NextResponse.json({
-        data: parsedData,
-        needsReview: false,
-        fallbackUsed: true,
-        model: 'smart-local-parser'
-      });
+        success: false,
+        aiSuccess: false,
+        extractionFailed: true,
+        error: 'Gemini API key is not configured. Document can be forwarded directly to CA Bench for manual review.',
+        data: null,
+        needsReview: true,
+        model: 'none'
+      }, { status: 200 });
     }
 
-    // CASE 1: Sample ID provided directly
+    // CASE 1: Sample ID provided directly (Presets for testing / demo)
     if (sampleId) {
       const sample = getSampleNoticeById(sampleId);
       if (sample) {
-        // If Gemini is available, attempt real extraction with gemini-2.5-flash
         if (apiKey) {
           try {
             const response = await ai.models.generateContent({
@@ -259,18 +246,22 @@ export async function POST(request: Request) {
                 penaltyAmount: parsed.penalty_amount || sample.penaltyAmount,
               };
               return NextResponse.json({
+                success: true,
+                aiSuccess: true,
                 data,
                 needsReview: (data.confidence || 1) < 0.80,
-                model: 'gemini-2.5-flash'
+                model: 'gemini-3.5-flash'
               });
             }
           } catch (geminiErr) {
-            console.warn('Gemini extraction failed for sample, utilizing resilient fallback:', geminiErr);
+            console.warn('Gemini extraction failed for preset sample, utilizing preset fallback:', geminiErr);
           }
         }
-        // Resilient fallback for sample notice
+        // Resilient preset fallback for sample notice quick-load
         const fallbackData = createFallbackFromSample(sample);
         return NextResponse.json({
+          success: true,
+          aiSuccess: false,
           data: fallbackData,
           needsReview: false,
           fallbackUsed: true,
@@ -279,7 +270,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // CASE 2: Raw Sample Text provided
+    // CASE 2: Raw Sample Text provided (Testing / text fallback)
     if (sampleText) {
       if (apiKey) {
         try {
@@ -312,18 +303,22 @@ export async function POST(request: Request) {
               penalty_amount: parsed.penalty_amount || 0,
             };
             return NextResponse.json({
+              success: true,
+              aiSuccess: true,
               data,
               needsReview: (data.confidence || 1) < 0.80,
-              model: 'gemini-2.5-flash'
+              model: 'gemini-3.5-flash'
             });
           }
         } catch (geminiErr) {
-          console.warn('Gemini text extraction failed, falling back:', geminiErr);
+          console.warn('Gemini text extraction failed, falling back to keyword matcher:', geminiErr);
         }
       }
       // Resilient text fallback
       const fallbackData = detectFallbackFromText(sampleText);
       return NextResponse.json({
+        success: true,
+        aiSuccess: false,
         data: fallbackData,
         needsReview: false,
         fallbackUsed: true,
@@ -339,13 +334,13 @@ export async function POST(request: Request) {
         .download(fileUrl);
 
       if (downloadError || !fileData) {
-        // If file access failed, check if fileUrl corresponds to a known sample
-        const fallbackData = detectFallbackFromText(fileUrl);
         return NextResponse.json({
-          data: fallbackData,
-          needsReview: false,
-          fallbackUsed: true,
-          warning: 'File storage read failed, used fallback.'
+          success: false,
+          aiSuccess: false,
+          extractionFailed: true,
+          error: 'File storage read failed.',
+          data: null,
+          needsReview: true
         });
       }
 
@@ -385,29 +380,31 @@ export async function POST(request: Request) {
             const parsed = JSON.parse(response.text);
             const data = {
               ...parsed,
-              dinNumber: parsed.din_number || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
-              din_number: parsed.din_number || 'DIN-' + Math.floor(100000 + Math.random() * 900000),
+              dinNumber: parsed.din_number || '',
+              din_number: parsed.din_number || '',
               penaltyAmount: parsed.penalty_amount || 0,
               penalty_amount: parsed.penalty_amount || 0,
             };
             return NextResponse.json({
+              success: true,
+              aiSuccess: true,
               data,
               needsReview: (data.confidence || 1) < 0.80,
-              model: 'gemini-2.5-flash'
+              model: 'gemini-3.5-flash'
             });
           }
         } catch (geminiErr) {
-          console.warn('Gemini vision extraction failed, falling back:', geminiErr);
+          console.warn('Gemini vision extraction failed for storage file:', geminiErr);
         }
       }
 
-      // Vision fallback
-      const fallbackData = detectFallbackFromText(fileUrl);
       return NextResponse.json({
-        data: fallbackData,
-        needsReview: false,
-        fallbackUsed: true,
-        model: 'file-fallback'
+        success: false,
+        aiSuccess: false,
+        extractionFailed: true,
+        error: 'Gemini extraction unavailable for storage file.',
+        data: null,
+        needsReview: true
       });
     }
 
@@ -415,12 +412,13 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error in extract-notice route:', error);
-    const sample = SAMPLE_NOTICES[0];
     return NextResponse.json({
-      data: createFallbackFromSample(sample),
-      needsReview: false,
-      fallbackUsed: true,
-      errorHandled: error.message || 'Internal error'
+      success: false,
+      aiSuccess: false,
+      extractionFailed: true,
+      error: error.message || 'Internal error in notice extraction',
+      data: null,
+      needsReview: true
     }, { status: 200 });
   }
 }
