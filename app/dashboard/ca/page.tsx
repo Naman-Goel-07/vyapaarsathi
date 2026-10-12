@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ComplianceScoreboard from '@/components/ComplianceScoreboard'
 import CAInteractiveWorkbench from '@/components/CAInteractiveWorkbench'
+import CAHeaderBanner from '@/components/CAHeaderBanner'
 
 export default async function CADashboard() {
   const supabase = createClient()
@@ -43,13 +44,7 @@ export default async function CADashboard() {
       {/* THE COMPLIANCE SCOREBOARD */}
       <ComplianceScoreboard notices={notices || []} />
 
-      <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-300 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-ink"></div>
-        <div className="pl-4">
-          <h2 className="text-2xl font-bold font-serif tracking-tight">Active Docket & Client Roster</h2>
-          <p className="text-gray-500 text-sm font-medium mt-1">Registry of pending statutory actions and retained enterprises.</p>
-        </div>
-      </div>
+      <CAHeaderBanner />
 
       {/* ORDER 4: MULTI-CLIENT PORTFOLIO + DYNAMIC RISK DESK + TRIAGE HEATMAP */}
       <CAInteractiveWorkbench

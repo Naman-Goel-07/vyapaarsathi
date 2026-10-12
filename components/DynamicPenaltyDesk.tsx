@@ -13,6 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { extractDemandAmount } from '@/lib/demand'
+import { useLanguage } from '@/lib/context/LanguageContext'
 
 interface DynamicPenaltyDeskProps {
   notices: Array<{
@@ -31,6 +32,7 @@ interface DynamicPenaltyDeskProps {
 }
 
 export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskProps) {
+  const { t, lang } = useLanguage()
   const [simulatedDays, setSimulatedDays] = useState(0)
   const [showSimulator, setShowSimulator] = useState(false)
 
@@ -92,23 +94,25 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="bg-post-red text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-              <ShieldAlert size={11} /> Risk Engine
+              <ShieldAlert size={11} /> {lang === 'hi' ? 'जोखिम इंजन' : 'Risk Engine'}
             </span>
             <span className="text-xs font-mono text-gray-500 font-semibold">
               S.73 (Penalty) & Rule 88B (18% Interest)
             </span>
           </div>
           <h3 className="text-ink font-bold font-serif text-lg sm:text-xl tracking-tight">
-            Fight vs. Settle Matrix
+            {lang === 'hi' ? 'मुकदमा बनाम शीघ्र निपटान मैट्रिक्स' : 'Fight vs. Settle Matrix'}
           </h3>
           <p className="text-xs text-gray-600 max-w-xl">
-            Live compounding accumulation of statutory exposure. See exactly what it costs to ignore a notice.
+            {lang === 'hi'
+              ? 'वैधानिक देयता का लाइव चक्रवृद्धि संचय। देखें कि नोटिस की अनदेखी करने पर क्या लागत आती है।'
+              : 'Live compounding accumulation of statutory exposure. See exactly what it costs to ignore a notice.'}
           </p>
         </div>
 
         <div className="bg-red-50 border-2 border-post-red/40 px-4 py-2 rounded-sm text-right shrink-0">
           <p className="text-[10px] font-mono text-post-red uppercase font-bold tracking-wider">
-            Total Money At Risk
+            {lang === 'hi' ? 'कुल जोखिम राशि' : 'Total Money At Risk'}
           </p>
           <p className="text-2xl font-bold text-post-red font-mono tracking-tight">
             ₹{fightTotal.toLocaleString('en-IN')}
@@ -122,30 +126,30 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
         <div className="border border-green-200 bg-green-50/30 rounded-sm p-4 space-y-3">
           <div className="flex justify-between items-center border-b border-green-200 pb-2">
             <h4 className="font-bold text-forest-green flex items-center gap-1.5">
-              <CheckCircle2 size={16} /> Option A: Settle Early
+              <CheckCircle2 size={16} /> {lang === 'hi' ? 'विकल्प क: शीघ्र समाधान (सैटल)' : 'Option A: Settle Early'}
             </h4>
             <span className="text-[10px] font-mono font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-xs">
-              Within 30 Days
+              {lang === 'hi' ? '30 दिनों के भीतर' : 'Within 30 Days'}
             </span>
           </div>
           
           <div className="space-y-1.5 text-xs font-mono">
             <div className="flex justify-between">
-              <span className="text-gray-600">Base Tax Demand</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'मूल कर मांग' : 'Base Tax Demand'}</span>
               <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">S.73 Concessional Penalty (25%)</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'धारा 73 रियायती शास्ति (25%)' : 'S.73 Concessional Penalty (25%)'}</span>
               <span className="font-semibold text-ink">₹{settlePenalty.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Interest / Late Fees</span>
-              <span className="font-semibold text-forest-green">Waived</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'ब्याज / विलंब शुल्क' : 'Interest / Late Fees'}</span>
+              <span className="font-semibold text-forest-green">{lang === 'hi' ? 'माफ़' : 'Waived'}</span>
             </div>
           </div>
           
           <div className="pt-2 border-t border-green-200 flex justify-between items-center">
-            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">Total Payable</span>
+            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">{lang === 'hi' ? 'कुल देय राशि' : 'Total Payable'}</span>
             <span className="text-lg font-bold text-forest-green font-mono">₹{settleTotal.toLocaleString('en-IN')}</span>
           </div>
         </div>
@@ -155,34 +159,34 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
           <div className="absolute top-0 right-0 w-8 h-8 bg-post-red/10 rotate-45 translate-x-4 -translate-y-4"></div>
           <div className="flex justify-between items-center border-b border-red-200 pb-2">
             <h4 className="font-bold text-post-red flex items-center gap-1.5">
-              <AlertTriangle size={16} /> Option B: Fight & Lose
+              <AlertTriangle size={16} /> {lang === 'hi' ? 'विकल्प ख: मुकदमा व हार' : 'Option B: Fight & Lose'}
             </h4>
             <span className="text-[10px] font-mono font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded-xs">
-              Litigation (1 Yr+)
+              {lang === 'hi' ? 'मुकदमेबाजी (1 वर्ष+)' : 'Litigation (1 Yr+)'}
             </span>
           </div>
           
           <div className="space-y-1.5 text-xs font-mono">
             <div className="flex justify-between">
-              <span className="text-gray-600">Base Tax Demand</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'मूल कर मांग' : 'Base Tax Demand'}</span>
               <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">S.73 Full Penalty (100%)</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'धारा 73 पूर्ण शास्ति (100%)' : 'S.73 Full Penalty (100%)'}</span>
               <span className="font-semibold text-post-red">₹{fightPenalty.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Accumulated 18% Interest</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'संचयी 18% वार्षिक ब्याज' : 'Accumulated 18% Interest'}</span>
               <span className="font-semibold text-post-red">₹{fightInterest.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">S.47 Late Filing Fees</span>
+              <span className="text-gray-600">{lang === 'hi' ? 'धारा 47 विलंब फाइलिंग शुल्क' : 'S.47 Late Filing Fees'}</span>
               <span className="font-semibold text-post-red">₹{fightLateFee.toLocaleString('en-IN')}</span>
             </div>
           </div>
           
           <div className="pt-2 border-t border-red-200 flex justify-between items-center">
-            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">Total Exposure</span>
+            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">{lang === 'hi' ? 'कुल वैधानिक जोखिम' : 'Total Exposure'}</span>
             <span className="text-lg font-bold text-post-red font-mono">₹{fightTotal.toLocaleString('en-IN')}</span>
           </div>
         </div>
@@ -195,11 +199,15 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
           className="text-xs font-mono font-bold text-ink hover:text-blue-600 flex items-center gap-1.5 cursor-pointer underline underline-offset-2 transition-colors"
         >
           <Sliders size={13} />
-          {showSimulator ? 'Close Daily Interest Simulator' : 'Test Daily Interest Simulator'}
+          {lang === 'hi'
+            ? (showSimulator ? 'दैनिक ब्याज सिम्युलेटर बंद करें' : 'दैनिक ब्याज सिम्युलेटर जांचें')
+            : (showSimulator ? 'Close Daily Interest Simulator' : 'Test Daily Interest Simulator')}
         </button>
 
         <span className="text-[11px] font-mono text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 shadow-xs">
-          Difference: <strong className="text-ink">₹{(fightTotal - settleTotal).toLocaleString('en-IN')} saved by settling.</strong>
+          {lang === 'hi'
+            ? <>अंतर: <strong className="text-ink">समाधान करने पर ₹{(fightTotal - settleTotal).toLocaleString('en-IN')} की बचत।</strong></>
+            : <>Difference: <strong className="text-ink">₹{(fightTotal - settleTotal).toLocaleString('en-IN')} saved by settling.</strong></>}
         </span>
       </div>
 

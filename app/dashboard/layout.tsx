@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { LogOut } from 'lucide-react'
 import WhatsAppBotSimulator from '@/components/WhatsAppBotSimulator'
+import DashboardHeaderControls from '@/components/DashboardHeaderControls'
 
 export default async function DashboardLayout({
   children,
@@ -40,20 +40,7 @@ export default async function DashboardLayout({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-medium px-2 py-1 bg-ink text-white rounded-sm uppercase tracking-wider">
-              {profile?.role === 'ca' ? 'CA Bench' : 'Owner Desk'}
-            </span>
-          </div>
-          
-
-          <form action="/auth/signout" method="post">
-            <button className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-post-red transition-colors px-3 py-1.5 rounded-md hover:bg-gray-100">
-              <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
-            </button>
-          </form>
-        </div>
+        <DashboardHeaderControls role={profile?.role} />
       </header>
       
       <main className="flex-1 w-full relative">

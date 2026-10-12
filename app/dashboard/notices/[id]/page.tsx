@@ -7,6 +7,7 @@ import StatutoryReplyGenerator from '@/components/StatutoryReplyGenerator'
 import VernacularVoiceAssistant from '@/components/VernacularVoiceAssistant'
 import InstitutionalMemory from '@/components/InstitutionalMemory'
 import CalendarDesk from '@/components/CalendarDesk'
+import NoticeDocketHeader from '@/components/NoticeDocketHeader'
 import NoticePDFViewer from '@/components/NoticePDFViewer'
 import { extractDemandAmount, extractDIN } from '@/lib/demand'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
@@ -72,84 +73,19 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto py-2">
-      {/* Navigation & Header Breadcrumb */}
-      <div className="flex justify-between items-center">
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-        >
-          <ArrowLeft size={14} /> Back to Dashboard
-        </Link>
-
-        <span className="font-mono text-xs text-gray-400">
-          FILE ID: {notice.id.substring(0, 8)}...
-        </span>
-      </div>
-
-      {/* Official Notice Docket Overview Card */}
-      <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="bg-slate-100 text-slate-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
-                Official Case Docket
-              </span>
-              <span className="text-xs text-gray-400 font-mono">
-                {notice.created_at ? new Date(notice.created_at).toLocaleDateString() : ''}
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold font-serif text-slate-900">
-              {notice.authority} • {notice.form}
-            </h2>
-            <p className="text-xs text-gray-600 flex items-center gap-1.5 font-medium">
-              <Building2 size={13} className="text-gray-400" />
-              Establishment: {(notice.businesses as any)?.name || 'Registered MSME'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                notice.status === 'closed'
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  : notice.status === 'filed'
-                  ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                  : 'bg-amber-100 text-amber-800 border border-amber-200'
-              }`}
-            >
-              Status: {notice.status}
-            </span>
-          </div>
-        </div>
-
-        {/* Notice Particulars Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100 text-xs">
-          <div className="space-y-1 md:col-span-2">
-            <span className="font-mono text-[10px] uppercase font-bold text-gray-400 block">
-              Statutory Findings & Alleged Discrepancy
-            </span>
-            <p className="text-gray-800 leading-relaxed font-sans">{notice.issue}</p>
-          </div>
-
-          <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <div>
-              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
-                <Calendar size={11} /> Compliance Deadline
-              </span>
-              <p className="font-mono text-sm font-bold text-red-600 mt-0.5">
-                {notice.deadline || 'No statutory deadline recorded'}
-              </p>
-            </div>
-            {notice.confidence && (
-              <div className="pt-1 border-t border-slate-200/60">
-                <span className="font-mono text-[10px] text-gray-400">
-                  AI Extraction Confidence: {Math.round(notice.confidence * 100)}%
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* BILINGUAL OFFICIAL NOTICE DOCKET OVERVIEW CARD */}
+      <NoticeDocketHeader
+        noticeId={notice.id}
+        backHref={backHref}
+        createdAt={notice.created_at}
+        authority={notice.authority}
+        form={notice.form}
+        businessName={(notice.businesses as any)?.name || 'Registered MSME'}
+        status={notice.status}
+        issue={notice.issue}
+        deadline={notice.deadline}
+        confidence={notice.confidence}
+      />
 
       {/* ORIGINAL STATUTORY NOTICE PDF VIEWER & CA VERIFICATION DESK */}
       <NoticePDFViewer

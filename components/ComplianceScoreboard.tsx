@@ -2,12 +2,14 @@
 
 import React from 'react'
 import { Award } from 'lucide-react'
+import { useLanguage } from '@/lib/context/LanguageContext'
 
 export interface ComplianceScoreboardProps {
   notices?: any[]
 }
 
 export default function ComplianceScoreboard({ notices = [] }: ComplianceScoreboardProps) {
+  const { t, lang } = useLanguage()
   const totalTracked = notices.length
 
   if (totalTracked === 0) {
@@ -16,25 +18,25 @@ export default function ComplianceScoreboard({ notices = [] }: ComplianceScorebo
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="bg-forest-green text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-              <Award size={11} /> The Scoreboard
+              <Award size={11} /> {t('scoreboard.badge', 'The Scoreboard')}
             </span>
             <span className="text-[10px] font-mono text-gray-500">
-              Preview: based only on notices tracked in VyapaarSathi.
+              {t('scoreboard.preview', 'Preview: based only on notices tracked in VyapaarSathi.')}
             </span>
           </div>
 
           <h3 className="text-lg font-serif font-bold text-ink flex items-center gap-2">
-            Vyapaar Compliance Health Score
+            {t('scoreboard.title', 'Vyapaar Compliance Health Score')}
           </h3>
 
           <p className="text-xs text-gray-600 max-w-xl">
-            Unified statutory compliance index across GST, Municipal, and Labour authorities.
+            {t('scoreboard.subtitle', 'Unified statutory compliance index across GST, Municipal, and Labour authorities.')}
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-sm font-mono text-gray-500 italic">
-            No notices tracked yet
+            {t('scoreboard.noNotices', 'No notices tracked yet')}
           </div>
         </div>
       </div>
@@ -75,19 +77,19 @@ export default function ComplianceScoreboard({ notices = [] }: ComplianceScorebo
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="bg-forest-green text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-            <Award size={11} /> The Scoreboard
+            <Award size={11} /> {t('scoreboard.badge', 'The Scoreboard')}
           </span>
           <span className="text-[10px] font-mono text-gray-500">
-            Preview: based only on notices tracked in VyapaarSathi.
+            {t('scoreboard.preview', 'Preview: based only on notices tracked in VyapaarSathi.')}
           </span>
         </div>
 
         <h3 className="text-lg font-serif font-bold text-ink flex items-center gap-2">
-          Vyapaar Compliance Health Score
+          {t('scoreboard.title', 'Vyapaar Compliance Health Score')}
         </h3>
 
         <p className="text-xs text-gray-600 max-w-xl">
-          Unified statutory compliance index across GST, Municipal, and Labour authorities.
+          {t('scoreboard.subtitle', 'Unified statutory compliance index across GST, Municipal, and Labour authorities.')}
         </p>
       </div>
 
@@ -99,7 +101,7 @@ export default function ComplianceScoreboard({ notices = [] }: ComplianceScorebo
           </div>
           <div>
             <p className="text-xs font-mono font-bold text-ink">
-              {overdueCount} overdue · {dueThisWeekCount} due this week · {totalTracked} tracked
+              {overdueCount} {lang === 'hi' ? 'अतिदेय' : 'overdue'} · {dueThisWeekCount} {lang === 'hi' ? 'इस सप्ताह देय' : 'due this week'} · {totalTracked} {lang === 'hi' ? 'ट्रैक किए गए' : 'tracked'}
             </p>
           </div>
         </div>
