@@ -526,5 +526,21 @@ export async function sealNoticeDocket({
   }
 }
 
+export async function loginAsDemo(formData: FormData) {
+  const role = formData.get('role') === 'ca' ? 'ca' : 'owner'
+  const email = role === 'ca' ? process.env.DEMO_CA_EMAIL : process.env.DEMO_OWNER_EMAIL
+  const password = role === 'ca' ? process.env.DEMO_CA_PASSWORD : process.env.DEMO_OWNER_PASSWORD
+  if (!email || !password) {
+    return redirect('/login?error=' + encodeURIComponent('Demo account is not set up yet.'))
+  }
+  const supabase = createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  }
+  revalidatePath('/', 'layout')
+  redirect(role === 'ca' ? '/dashboard/ca' : '/dashboard/owner')
+}
+
 
 

@@ -129,3 +129,19 @@
 @media (prefers-reduced-motion: reduce) { .owner-skeleton { animation: none; } }
 @media (min-width: 560px) { .owner-bottom-nav { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
 @media print { .owner-header, .owner-bottom-nav { display: none; } .owner-main { padding: 0; max-width: none; } }
+
+/* Public pages: landing, login, signup */
+.site-logo { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--brand); color: #fff; font-family: var(--font-owner-hi), sans-serif; font-weight: 700; }
+.site-header-wide { padding-left: max(16px, calc((100% - 960px) / 2 + 16px)); padding-right: max(16px, calc((100% - 960px) / 2 + 16px)); }
+.site-main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+.site-narrow { max-width: 440px; margin: 0 auto; }
+.site-hero { display: grid; gap: 32px; align-items: center; }
+.site-title { font-size: 32px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em; }
+.site-phone { width: 100%; max-width: 380px; margin: 0 auto; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 28px; }
+.owner-role { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); cursor: pointer; }
+.owner-role.is-selected { border-color: var(--brand); background: var(--brand-soft); }
+.owner-role:focus-within { outline: 3px solid var(--brand); outline-offset: 2px; }
+@media (min-width: 860px) {
+  .site-hero { grid-template-columns: 1.1fr 1fr; gap: 56px; padding-top: 32px; }
+  .site-title { font-size: 44px; }
+}

@@ -25,5 +25,5 @@ export default async function LoginPage({
     }
   }
 
-  return <LoginForm loginAction={login} searchParams={searchParams} />
+  return <LoginForm loginAction={login} searchParams={searchParams} demoEnabled={Boolean(process.env.DEMO_OWNER_EMAIL)} />
 }

@@ -20,5 +20,5 @@ export default async function Home() {
     }
   }
 
-  return <LandingContent />;
+  return <LandingContent demoEnabled={Boolean(process.env.DEMO_OWNER_EMAIL)} />;
 }

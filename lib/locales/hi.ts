@@ -1,8 +1,10 @@
 import { ownerHi } from './owner'
+import { siteHi } from './site'
 import { TranslationDict } from './en'
 
 export const hi: TranslationDict = {
   owner: ownerHi,
+  site: siteHi,
   common: {
     vyapaarSathi: 'व्यापारसाथी',
     tagline: 'एमएसएमई और चार्टर्ड एकाउंटेंट्स के लिए सरकारी अनुपालन ट्रैकर। कभी कोई अंतिम तिथि न चूकें।',

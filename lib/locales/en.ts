@@ -1,6 +1,8 @@
 import { ownerEn } from './owner'
+import { siteEn } from './site'
 export const en = {
   owner: ownerEn,
+  site: siteEn,
   common: {
     vyapaarSathi: 'VyapaarSathi',
     tagline: 'The Government Action Tracker for MSMEs and Chartered Accountants. Never miss a compliance deadline again.',
