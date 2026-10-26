@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+
 
 import React, { useState, useEffect, useRef } from 'react'
 import {
@@ -45,6 +47,7 @@ const LANGUAGES: LanguageOption[] = [
 ];
 
 interface VernacularVoiceAssistantProps {
+  ownerView?: boolean
   authority: string;
   form: string;
   issue: string;
@@ -55,12 +58,15 @@ interface VernacularVoiceAssistantProps {
 
 export default function VernacularVoiceAssistant({
   authority,
+  ownerView = false,
   form,
   issue,
   deadline,
   penaltyAmount = null,
   businessName = 'Vyapaari Ji'
 }: VernacularVoiceAssistantProps) {
+  const { t, lang } = useLanguage()
+
   const [selectedLang, setSelectedLang] = useState<LanguageCode>('hinglish');
   const [script, setScript] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -121,7 +127,7 @@ export default function VernacularVoiceAssistant({
   // Text-To-Speech Playback
   const handlePlay = () => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
-      alert('Text-to-Speech is not supported in this browser.');
+      alert(ownerView ? t('owner.error') : 'Text-to-Speech is not supported in this browser.');
       return;
     }
 
@@ -203,6 +209,7 @@ export default function VernacularVoiceAssistant({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
+  if (ownerView) return <div className="space-y-4"><label className="owner-field">{t('owner.language')}<select value={selectedLang} onChange={e => handleLanguageSelect(e.target.value as LanguageCode)}>{LANGUAGES.map(l => <option key={l.code} value={l.code}>{t(`owner.${l.code === 'hindi' ? 'hindi' : l.code}`)}</option>)}</select></label><div className="flex flex-wrap gap-3"><button className="owner-primary flex-1" disabled={loading} onClick={isPlaying ? handlePause : handlePlay}>{t(loading ? 'owner.loading' : isPlaying ? 'owner.pause' : 'owner.play')}</button><button className="owner-secondary" onClick={handleRestart}>{t('owner.restart')}</button><button className="owner-secondary" onClick={handleWhatsAppShare}>{t('owner.share')}</button></div><label className="owner-field">{t('owner.speed')}<select value={playbackSpeed} onChange={e => setPlaybackSpeed(Number(e.target.value))}>{[.75,1,1.25,1.5].map(speed => <option key={speed} value={speed}>{speed}×</option>)}</select></label><details><summary>{t('owner.transcript')}</summary><p className="whitespace-pre-wrap mt-3">{script}</p></details></div>
   return (
     <div className="bg-amber-500/10 border-2 border-amber-600/30 rounded-sm p-4 sm:p-5 my-4 relative overflow-hidden text-slate-900">
       {/* BACKGROUND GRAPHIC */}

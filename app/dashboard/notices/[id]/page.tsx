@@ -1,3 +1,4 @@
+import OwnerNoticeDetail, { OwnerNoticeNotFound } from '@/components/owner/OwnerNoticeDetail'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -30,6 +31,7 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
     .single()
 
   if (!notice) {
+    if (profile?.role === 'owner') return <OwnerNoticeNotFound />
     return (
       <div className="p-8 text-center max-w-lg mx-auto space-y-4">
         <h2 className="text-xl font-bold text-gray-800">Notice Not Found</h2>
@@ -63,6 +65,8 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
     .neq('id', notice.id)
     .order('created_at', { ascending: false })
     .limit(3)
+
+  if (profile?.role === 'owner') return <OwnerNoticeDetail notice={notice} tasks={tasks || []} pastNotices={pastNotices || []} />
 
   const rawDemand = extractDemandAmount(notice)
   const penaltyAmount = rawDemand > 0 ? rawDemand : null

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, DragEvent, ChangeEvent } from 'react'
+import React, { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -25,6 +25,8 @@ import {
   FileWarning,
   ShieldAlert
 } from 'lucide-react'
+import { useLanguage } from '@/lib/context/LanguageContext'
+import { compressOwnerImage } from '@/lib/compress-owner-image'
 import { routeNoticeToCABench, sealNoticeDocket } from '@/app/actions'
 
 export interface DocketFormData {
@@ -60,7 +62,10 @@ interface AiFailedDocket {
   error: string
 }
 
-export default function UploadNotice({ businessId }: { businessId: string }) {
+export default function UploadNotice({ businessId, ownerView = false, captureMode = false, initialFiles, onFilesQueued }: { businessId: string; ownerView?: boolean; captureMode?: boolean; initialFiles?: File[]; onFilesQueued?: () => void }) {
+  const { t } = useLanguage()
+  const lastInitialFiles = useRef<File[]>()
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const isSubmittingRef = useRef(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -113,7 +118,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       const file = files[i]
       const validation = validateFile(file)
       if (!validation.valid) {
-        setErrorMessage(validation.reason || 'Invalid file')
+        setErrorMessage(ownerView ? t('owner.invalidFile') : validation.reason || 'Invalid file')
         continue
       }
       newQueue.push({
@@ -170,7 +175,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
     setSuccessMessage(null)
 
     try {
-      const file = queued.file
+      const file = ownerView ? await compressOwnerImage(queued.file) : queued.file
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
       const filePath = `${businessId || 'default'}/${fileName}`
@@ -273,7 +278,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       setAiFailedDocket(null)
       setSuccessMessage(`Docket successfully sealed! "${failedDoc.name}" has been forwarded directly to your Chartered Accountant Bench for full legal review.`)
       setTimeout(() => {
-        window.location.href = '/dashboard/owner'
+        window.location.href = ownerView ? '/dashboard/owner/notices' : '/dashboard/owner'
       }, 1200)
     } catch (err: any) {
       console.error('Error dispatching to CA Bench:', err)
@@ -344,7 +349,7 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       } catch (e) {
         // Safe fallback in static / non-standard router contexts
       }
-      window.location.href = '/dashboard/owner'
+      window.location.href = ownerView ? '/dashboard/owner/notices' : '/dashboard/owner'
     } catch (err: any) {
       console.error('Error saving sealed docket:', err)
       setModalError(err.message || 'Failed to seal docket into database')
@@ -369,6 +374,39 @@ export default function UploadNotice({ businessId }: { businessId: string }) {
       documents: docketData.documents.filter((_, i) => i !== index)
     })
   }
+
+  useEffect(() => {
+    if (ownerView && initialFiles?.length && lastInitialFiles.current !== initialFiles) {
+      lastInitialFiles.current = initialFiles
+      addFilesToQueue(initialFiles)
+      onFilesQueued?.()
+    }
+  }, [initialFiles])
+
+  if (ownerView) return <div className="space-y-5">
+    {errorMessage && <p role="alert" className="owner-card">{errorMessage === t('owner.invalidFile') ? errorMessage : t('owner.error')}</p>}
+    {successMessage && <p role="status" className="owner-card">{t('owner.sentCA')}</p>}
+    {!(isModalOpen && docketData) && <section className="owner-card space-y-5" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      <p className="text-slate-600">{t('owner.uploadHint')}</p>
+      <input ref={fileInputRef} type="file" multiple accept="application/pdf,image/png,image/jpeg" className="hidden" onChange={handleFileInputChange} disabled={loading} />
+      <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png" capture="environment" className="hidden" onChange={handleFileInputChange} disabled={loading} />
+      <div className="grid sm:grid-cols-2 gap-3"><button className={captureMode ? 'owner-primary' : 'owner-secondary'} disabled={loading} onClick={() => cameraInputRef.current?.click()}>{t('owner.takePhoto')}</button><button className={captureMode ? 'owner-secondary' : 'owner-primary'} disabled={loading} onClick={() => fileInputRef.current?.click()}><UploadCloud size={20} />{t('owner.upload')}</button></div>
+      {loading && <div role="status" className="space-y-3"><p className="flex items-center gap-2"><Loader2 className="animate-spin" />{t('owner.reading')}</p><div className="owner-skeleton h-20" /></div>}
+      {queuedFiles.length > 0 && <div className="space-y-3"><h2 className="font-bold">{t('owner.queue')}</h2>{queuedFiles.map(q => <div key={q.id} className="rounded-xl border p-3 space-y-3"><p className="break-all">{q.name}</p><div className="flex gap-2"><button className="owner-primary flex-1" disabled={loading} onClick={() => processQueuedFile(q)}>{t('owner.readNotice')}</button><button className="owner-icon" aria-label={t('owner.remove')} disabled={loading} onClick={() => removeQueuedFile(q.id)}><Trash2 size={20} /></button></div></div>)}</div>}
+    </section>}
+    {aiFailedDocket && <section className="owner-card space-y-4"><p>{t('owner.extractionFailed')}</p><div className="grid gap-3"><button className="owner-primary" disabled={dispatchingToCA} onClick={() => handleSendToCABench(aiFailedDocket)}>{t(dispatchingToCA ? 'owner.saving' : 'owner.sendCA')}</button><button className="owner-secondary" disabled={loading} onClick={() => { const failed = aiFailedDocket; setAiFailedDocket(null); processQueuedFile({ id: 'retry', file: failed.file, name: failed.name, size: failed.size, type: failed.file.type }) }}>{t('owner.retry')}</button><button className="owner-secondary" onClick={() => handleManualFillOverride(aiFailedDocket)}>{t('owner.enterManually')}</button></div></section>}
+    {isModalOpen && docketData && <form className="owner-card space-y-5" onSubmit={e => { e.preventDefault(); handleConfirmAndSeal() }}>
+      <h2 className="text-2xl font-bold">{t('owner.confirm')}</h2><p className="text-slate-600">{t('owner.confirmHint')}</p>
+      {docketData.confidence < .8 && <p className="rounded-xl bg-blue-50 p-4">{t('owner.lowConfidence')}</p>}
+      {modalError && <p role="alert">{t('owner.error')}</p>}
+      <div className="grid md:grid-cols-2 gap-4">{([{ key: 'authority', label: 'department' }, { key: 'form', label: 'noticeType' }, { key: 'dinNumber', label: 'reference' }, { key: 'deadline', label: 'deadline' }] as const).map(({ key, label }) => <label className="owner-field" key={key}>{t(`owner.${label}`)}<input type={key === 'deadline' ? 'date' : 'text'} value={docketData[key]} required={key === 'authority' || key === 'form'} onChange={e => setDocketData({ ...docketData, [key]: e.target.value })} /></label>)}<label className="owner-field">{t('owner.amount')}<input type="number" min="0" step="any" inputMode="decimal" value={docketData.penaltyAmount} onChange={e => setDocketData({ ...docketData, penaltyAmount: Number(e.target.value) })} /></label><label className="owner-field">{t('owner.assigned')}<select value={docketData.owner_role} onChange={e => setDocketData({ ...docketData, owner_role: e.target.value as 'owner' | 'ca' })}><option value="ca">{t('owner.ca')}</option><option value="owner">{t('owner.me')}</option></select></label></div>
+      <label className="owner-field">{t('owner.summary')}<textarea rows={4} value={docketData.issue} onChange={e => setDocketData({ ...docketData, issue: e.target.value })} /></label>
+      <label className="owner-field">{t('owner.action')}<input value={docketData.action} onChange={e => setDocketData({ ...docketData, action: e.target.value })} /></label>
+      <section className="space-y-3"><h3 className="font-bold">{t('owner.documents')}</h3>{docketData.documents.map((doc, i) => <div className="flex gap-2 items-center border-b" key={i}><p className="flex-1">{doc}</p><button type="button" className="owner-icon" aria-label={t('owner.remove')} onClick={() => handleRemoveDocument(i)}><Trash2 size={20} /></button></div>)}<label className="owner-field">{t('owner.addDocument')}<input value={newDocText} onChange={e => setNewDocText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddDocument() } }} /></label><button type="button" className="owner-secondary" onClick={handleAddDocument}><Plus size={20} />{t('owner.add')}</button></section>
+      {docketData.rawFileUrl && <details><summary>{t('owner.original')}</summary>{docketData.rawFileUrl.startsWith('data:image/') ? <img src={docketData.rawFileUrl} alt={t('owner.original')} className="w-full rounded-xl mt-3" /> : <iframe src={docketData.rawFileUrl} title={t('owner.original')} className="w-full h-[480px] mt-3 rounded-xl border" />}</details>}
+      <div className="flex flex-col gap-3 sm:flex-row-reverse"><button type="submit" className="owner-primary w-full" disabled={savingDocket}>{t(savingDocket ? 'owner.saving' : 'owner.saveNotice')}</button><button type="button" className="owner-secondary" disabled={savingDocket} onClick={() => { setIsModalOpen(false); setDocketData(null); setModalError(null) }}>{t('owner.cancel')}</button></div>
+    </form>}
+  </div>
 
   return (
     <div className="w-full flex flex-col gap-4 font-sans text-ink">

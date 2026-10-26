@@ -1,4 +1,7 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+import { shortDate } from '@/lib/owner-ui'
+
 
 import React, { useState } from 'react'
 import {
@@ -11,6 +14,7 @@ import {
 } from 'lucide-react'
 
 interface CalendarDeskProps {
+  ownerView?: boolean
   deadline?: string | null
   noticeId: string
   createdAt?: string | null
@@ -35,10 +39,13 @@ function formatDateIST(date: Date): string {
 
 export default function CalendarDesk({
   deadline,
+  ownerView = false,
   noticeId,
   createdAt,
   businessName = 'Registered MSME'
 }: CalendarDeskProps) {
+  const { t, lang } = useLanguage()
+
   const [testChasing, setTestChasing] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
@@ -94,6 +101,7 @@ export default function CalendarDesk({
       : [])
   ]
 
+  if (ownerView) return <div className="space-y-4"><p className="text-slate-600">{t('owner.reminderHint')}</p><div className="grid sm:grid-cols-2 gap-3">{stages.map((stage, i) => <div key={i} className="rounded-xl border p-4"><h3 className="font-semibold">{t(`owner.${['logged', 'caReminder', 'ownerReminder', 'finalReminder'][i]}`)}</h3><p>{shortDate(stage.date.toISOString(), lang)}</p></div>)}</div><button className="owner-secondary w-full sm:w-auto" disabled={testChasing} onClick={handleSimulateChase}>{t(testChasing ? 'owner.loading' : 'owner.preview')}</button>{toastMessage && <p role="status">{t('owner.reminderMessage')}</p>}</div>
   return (
     <div className="bg-white border border-gray-300 rounded-sm p-5 my-4 space-y-4 shadow-xs text-ink relative">
       {/* TOAST PREVIEW BANNER */}

@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+
 
 import React, { useState } from 'react'
 import {
@@ -21,6 +23,7 @@ import {
 import { updateNoticeParticulars } from '@/app/actions'
 
 interface NoticePDFViewerProps {
+  ownerView?: boolean
   noticeId: string
   rawFileUrl?: string | null
   authority: string
@@ -34,6 +37,7 @@ interface NoticePDFViewerProps {
 
 export default function NoticePDFViewer({
   noticeId,
+  ownerView = false,
   rawFileUrl,
   authority,
   form,
@@ -43,6 +47,8 @@ export default function NoticePDFViewer({
   confidence = 0,
   userRole = 'owner'
 }: NoticePDFViewerProps) {
+  const { t, lang } = useLanguage()
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -92,7 +98,7 @@ export default function NoticePDFViewer({
 
   const handleOpenNewTab = () => {
     if (!rawFileUrl) return
-    if (rawFileUrl.startsWith('data:application/pdf;base64,')) {
+    if (rawFileUrl.startsWith('data:application/pdf;base64,') || (ownerView && /^data:image\/(png|jpeg);base64,/.test(rawFileUrl))) {
       const base64Data = rawFileUrl.split(',')[1]
       const byteCharacters = atob(base64Data)
       const byteNumbers = new Array(byteCharacters.length)
@@ -100,9 +106,10 @@ export default function NoticePDFViewer({
         byteNumbers[i] = byteCharacters.charCodeAt(i)
       }
       const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/pdf' })
+      const blob = new Blob([byteArray], { type: ownerView ? rawFileUrl.slice(5, rawFileUrl.indexOf(';')) : 'application/pdf' })
       const blobUrl = URL.createObjectURL(blob)
       window.open(blobUrl, '_blank')
+      if (ownerView) setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
     } else {
       window.open(rawFileUrl, '_blank')
     }
@@ -112,12 +119,14 @@ export default function NoticePDFViewer({
     if (!rawFileUrl) return
     const a = document.createElement('a')
     a.href = rawFileUrl
-    a.download = `${form.replace(/[^a-zA-Z0-9_-]/g, '_')}_Document.pdf`
+    const extension = ownerView && (rawFileUrl.startsWith('data:image/png') || /\.png(\?|$)/i.test(rawFileUrl)) ? 'png' : ownerView && (rawFileUrl.startsWith('data:image/jpeg') || /\.jpe?g(\?|$)/i.test(rawFileUrl)) ? 'jpg' : 'pdf'
+    a.download = `${form.replace(/[^a-zA-Z0-9_-]/g, '_')}_Document.${extension}`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
   }
 
+  if (ownerView) return <section className="owner-card space-y-4"><h2 className="text-xl font-bold">{t('owner.original')}</h2>{rawFileUrl ? <><div className="flex flex-wrap gap-3"><button className="owner-secondary flex-1" onClick={handleOpenNewTab}>{t('owner.openFile')}</button><button className="owner-secondary flex-1" onClick={handleDownload}>{t('owner.download')}</button></div><details><summary>{t('owner.showOriginal')}</summary>{rawFileUrl.startsWith('data:image/') || /\.(jpe?g|png)(\?|$)/i.test(rawFileUrl) ? <img src={rawFileUrl} alt={t('owner.original')} className="w-full mt-3 rounded-xl" /> : <iframe src={rawFileUrl} title={t('owner.original')} className="w-full h-[480px] mt-3 rounded-xl border" />}</details></> : <p className="text-slate-600">{t('owner.noFile')}</p>}</section>
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-0">
       {/* HEADER BAR */}

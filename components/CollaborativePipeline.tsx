@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -36,6 +38,7 @@ export interface Task {
 }
 
 export interface CollaborativePipelineProps {
+  ownerView?: boolean
   noticeId: string
   initialNoticeStatus?: string
   initialTasks?: Task[]
@@ -158,12 +161,15 @@ const STEP_DEFINITIONS = [
 
 export default function CollaborativePipeline({
   noticeId,
+  ownerView = false,
   initialNoticeStatus = 'open',
   initialTasks = [],
   userRole = 'owner',
   authority,
   form
 }: CollaborativePipelineProps) {
+  const { t, lang } = useLanguage()
+
   // Normalize initial status to enum values
   const normalizedInitialStatus: NoticeStatus =
     initialNoticeStatus === 'filed' || initialNoticeStatus === 'closed'
@@ -559,6 +565,7 @@ export default function CollaborativePipeline({
     }
   }
 
+  if (ownerView) return <section className="owner-card space-y-4"><h2 className="text-xl font-bold">{t('owner.caStatus')}</h2><ol className="space-y-3">{[1,2,3,4,5].map(step => <li key={step} className={`flex gap-3 items-center ${step === currentStep ? 'font-bold text-blue-800' : 'text-slate-500'}`} aria-current={step === currentStep ? 'step' : undefined}><span className="w-8 h-8 rounded-full bg-slate-100 grid place-items-center shrink-0">{step < currentStep ? <CheckCircle2 size={18} /> : step}</span>{t(`owner.step${step}`)}</li>)}</ol>{currentStep === 2 && <div className="space-y-3 border-t pt-4"><ul className="list-disc pl-5">{docTask?.documents_requested?.map((doc, i) => <li key={i}>{doc}</li>)}</ul><p className="text-slate-600">{t('owner.readyHint')}</p><button className="owner-primary w-full" disabled={actionLoading} onClick={handleOwnerSubmitDocs}>{t(actionLoading ? 'owner.saving' : 'owner.markDocuments')}</button></div>}</section>
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden font-sans text-ink">
       {/* 1. TOP HEADER & INTERACTIVE ROLE SWITCHER */}

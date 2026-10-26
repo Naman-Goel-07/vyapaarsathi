@@ -67,3 +67,42 @@ TEST_INFRA.md
 TEST_READY.md
 scratch/
 *.log
+
+
+/output/
+/dist/
+/.cache/
+/.turbo/
+/.eslintcache
+
+
+/.codex/
+/.vscode/
+/.idea/
+*.code-workspace
+
+# Windows metadata and editor recovery files
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# Private credentials and local database backups (keep schema sources tracked)
+/secrets/
+/.secrets/
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+/backups/
+*.dump
+*.sql.gz
+
+# Python caches from local document/audit utilities
+__pycache__/
+*.py[cod]

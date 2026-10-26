@@ -1,3 +1,4 @@
+import OwnerWorkspace from '@/components/owner/OwnerWorkspace'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -25,6 +26,8 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
+
+  if (profile?.role === 'owner') return <OwnerWorkspace>{children}</OwnerWorkspace>
 
   return (
     <div className="min-h-screen bg-paper flex flex-col font-sans text-ink">

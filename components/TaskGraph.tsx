@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+
 
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -6,6 +8,7 @@ import { CheckCircle2, Circle, Clock, FileText, CheckCircle, ShieldCheck } from 
 import CollaborativePipeline from './CollaborativePipeline'
 
 export interface TaskGraphProps {
+  ownerView?: boolean
   noticeId: string
   initialTasks?: any[]
   userRole?: string
@@ -15,11 +18,14 @@ export interface TaskGraphProps {
 
 export default function TaskGraph({
   noticeId,
+  ownerView = false,
   initialTasks = [],
   userRole = 'owner',
   showPipeline = false,
   noticeStatus = 'open'
 }: TaskGraphProps) {
+  const { t, lang } = useLanguage()
+
   const [tasks, setTasks] = useState<any[]>(initialTasks)
   const supabase = createClient()
 
@@ -94,6 +100,7 @@ export default function TaskGraph({
     }
   }
 
+  if (ownerView) return <div className="space-y-3">{tasks.length ? tasks.map(task => <div key={task.id} className="border rounded-xl p-4 space-y-3"><div className="flex gap-3 justify-between"><p className="font-semibold">{task.action}</p><span className="text-slate-500 shrink-0">{t(task.owner_role === 'ca' ? 'owner.ca' : 'owner.me')}</span></div>{task.documents_requested?.length > 0 && <ul className="list-disc pl-5">{task.documents_requested.map((doc: string, i: number) => <li key={i}>{doc}</li>)}</ul>}<p className="text-slate-600">{t(task.status === 'completed' ? 'owner.completed' : 'owner.pending')}</p>{task.owner_role === userRole && <button className="owner-secondary w-full" onClick={() => toggleTaskStatus(task)}>{t(task.status === 'completed' ? 'owner.undo' : 'owner.done')}</button>}</div>) : <p className="text-slate-600">{t('owner.noTasks')}</p>}</div>
   return (
     <div className="space-y-6">
       {/* Optional Embedded Collaborative Pipeline */}

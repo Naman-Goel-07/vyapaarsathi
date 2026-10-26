@@ -1,4 +1,6 @@
+import { ownerEn } from './owner'
 export const en = {
+  owner: ownerEn,
   common: {
     vyapaarSathi: 'VyapaarSathi',
     tagline: 'The Government Action Tracker for MSMEs and Chartered Accountants. Never miss a compliance deadline again.',

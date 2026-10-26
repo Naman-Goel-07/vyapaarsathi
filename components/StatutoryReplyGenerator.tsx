@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+
 
 import React, { useState, useRef } from 'react'
 import {
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react'
 
 interface StatutoryReplyGeneratorProps {
+  ownerView?: boolean
   noticeId: string
   authority: string
   form: string
@@ -35,6 +38,7 @@ interface StatutoryReplyGeneratorProps {
 
 export default function StatutoryReplyGenerator({
   noticeId,
+  ownerView = false,
   authority,
   form,
   issue,
@@ -45,6 +49,8 @@ export default function StatutoryReplyGenerator({
   currentStatus = 'open',
   userRole = 'ca'
 }: StatutoryReplyGeneratorProps) {
+  const { t, lang } = useLanguage()
+
   const [loading, setLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [replyHtml, setReplyHtml] = useState<string>('')
@@ -89,7 +95,7 @@ export default function StatutoryReplyGenerator({
       }
     } catch (err) {
       console.error('Error generating reply:', err)
-      alert('Failed to generate statutory response. Please retry.')
+      alert(ownerView ? t('owner.error') : 'Failed to generate statutory response. Please retry.')
     } finally {
       setLoading(false)
     }
@@ -120,7 +126,7 @@ export default function StatutoryReplyGenerator({
       })
       if (res.ok) {
         setIsFiled(true)
-        alert(`Statutory response recorded on government portal docket! Generated ARN: ${arn}`)
+        alert(ownerView ? t('owner.replyRecorded') : `Statutory response recorded on government portal docket! Generated ARN: ${arn}`)
         window.location.reload()
       }
     } catch (e) {
@@ -130,6 +136,7 @@ export default function StatutoryReplyGenerator({
     }
   }
 
+  if (ownerView) return <div className="space-y-4"><p className="text-slate-600">{t('owner.draftHint')}</p><button className="owner-primary w-full sm:w-auto" disabled={loading} onClick={handleGenerateReply}>{t(loading ? 'owner.loading' : 'owner.generate')}</button>{isOpen && <div className="space-y-4"><div className="flex flex-wrap gap-2"><button className="owner-secondary" onClick={handleCopy}>{t(copied ? 'owner.copied' : 'owner.copy')}</button><button className="owner-secondary" onClick={handlePrint}>{t('owner.print')}</button><button className="owner-secondary" onClick={() => { if (isEditing) setReplyHtml(editedHtml); setIsEditing(!isEditing) }}>{t(isEditing ? 'owner.saveEdit' : 'owner.edit')}</button><button className="owner-secondary" onClick={() => setIsOpen(false)}>{t('owner.close')}</button></div>{isEditing ? <label className="owner-field">{t('owner.edit')}<textarea rows={14} value={editedHtml} onChange={e => setEditedHtml(e.target.value)} /></label> : <div ref={documentRef} className="owner-reply overflow-x-auto rounded-xl border p-4" dangerouslySetInnerHTML={{ __html: replyHtml }} />}{!isFiled && <div className="space-y-3"><p>{t('owner.recordHint')}</p><button className="owner-secondary w-full" disabled={filing} onClick={() => { if (window.confirm(t('owner.recordConfirm'))) handleConfirmFiling() }}>{t(filing ? 'owner.saving' : 'owner.recordReply')}</button></div>}{legalPoints.length > 0 && <ul className="list-disc pl-5 space-y-2">{legalPoints.map((point, i) => <li key={i}>{point}</li>)}</ul>}</div>}</div>
   return (
     <>
       {/* TRIGGER CARD INSIDE NOTICE DETAIL VIEW */}

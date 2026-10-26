@@ -1,4 +1,6 @@
 'use client'
+import { useLanguage } from '@/lib/context/LanguageContext'
+import OwnerModal from './owner/OwnerModal'
 
 import React, { useState, useRef, useEffect } from 'react'
 import {
@@ -35,11 +37,14 @@ interface ChatMessage {
 
 export default function WhatsAppBotSimulator({
   defaultOpen = false,
+  ownerView = false,
   onClose
 }: {
+  ownerView?: boolean
   defaultOpen?: boolean
   onClose?: () => void
 }) {
+  const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -94,7 +99,7 @@ export default function WhatsAppBotSimulator({
       userMsg = {
         id: `user-${Date.now()}`,
         sender: 'user',
-        text: 'Sir, I received this scary GST DRC-01 notice via email today! Please check what to do.',
+        text: ownerView ? t('owner.demoGST') : 'Sir, I received this scary GST DRC-01 notice via email today! Please check what to do.',
         timestamp: timeStr,
         fileAttachment: {
           name: 'GST_DRC_01_Notice_FY24-25.pdf',
@@ -106,7 +111,7 @@ export default function WhatsAppBotSimulator({
       userMsg = {
         id: `user-${Date.now()}`,
         sender: 'user',
-        text: 'Received Income Tax Section 148A notice for High Value Transaction. Is this an audit?',
+        text: ownerView ? t('owner.demoTax') : 'Received Income Tax Section 148A notice for High Value Transaction. Is this an audit?',
         timestamp: timeStr,
         fileAttachment: {
           name: 'IT_148A_Demand_Order.pdf',
@@ -144,7 +149,7 @@ export default function WhatsAppBotSimulator({
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
-        text: data.replyText || 'Received your inquiry. Your CA has been notified.',
+        text: data.replyText || (ownerView ? t('owner.demoError') : 'Received your inquiry. Your CA has been notified.'),
         timestamp: botTime,
         hasAudio: true,
         audioScript: data.voiceScript || 'Namaste ji, bilkul ghabraiye nahi. Yeh notice routine mismatch ke baare me hai.'
@@ -156,12 +161,14 @@ export default function WhatsAppBotSimulator({
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
-        text: '⚠️ Network timeout connecting to GSTN gateway. Your docket has been saved locally.',
+        text: ownerView ? t('owner.demoError') : '⚠️ Network timeout connecting to GSTN gateway. Your docket has been saved locally.',
         timestamp: timeStr
       }
       setMessages((prev) => [...prev, botMsg])
     }
   }
+
+  if (ownerView) return <OwnerModal title={t('owner.bot')} onClose={() => { window.speechSynthesis?.cancel(); onClose?.() }}><p className="text-slate-600">{t('owner.demoNote')}</p><label className="owner-field">{t('owner.language')}<select value={selectedLanguage} onChange={e => setSelectedLanguage(e.target.value as typeof selectedLanguage)}>{['hindi','hinglish','tamil','english'].map(l => <option key={l} value={l}>{t(`owner.${l}`)}</option>)}</select></label><div className="space-y-3 max-h-72 overflow-y-auto" aria-live="polite">{messages.map((m,i) => <div key={m.id} className={`p-3 rounded-xl ${m.sender === 'user' ? 'bg-blue-50' : 'bg-slate-100'}`}><p className="whitespace-pre-wrap">{i === 0 ? t('owner.demoGreeting') : m.text}</p>{m.hasAudio && <button className="owner-secondary mt-2" onClick={() => playVoiceNote(m.audioScript || m.text,m.id)}>{t(isPlayingAudio === m.id ? 'owner.pause' : 'owner.play')}</button>}</div>)}{isTyping && <p>{t('owner.loading')}</p>}<div ref={messagesEndRef} /></div><div className="grid gap-2"><button disabled={isTyping} className="owner-secondary" onClick={() => handleSendNotice('drc-01')}>{t('owner.demoGST')}</button><button disabled={isTyping} className="owner-secondary" onClick={() => handleSendNotice('148a')}>{t('owner.demoTax')}</button></div><form className="space-y-3" onSubmit={e => { e.preventDefault(); if (inputText.trim()) handleSendNotice('custom') }}><label className="owner-field">{t('owner.message')}<input value={inputText} onChange={e => setInputText(e.target.value)} required /></label><button className="owner-primary w-full" disabled={isTyping || !inputText.trim()}>{t('owner.send')}</button></form></OwnerModal>
 
   return (
     <>
