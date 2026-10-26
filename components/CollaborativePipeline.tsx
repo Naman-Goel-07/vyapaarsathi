@@ -11,6 +11,7 @@ import {
   Send,
   Lock,
   CheckCircle2,
+  Check,
   Clock,
   AlertCircle,
   Building2,
@@ -565,7 +566,38 @@ export default function CollaborativePipeline({
     }
   }
 
-  if (ownerView) return <section className="owner-card space-y-4"><h2 className="text-xl font-bold">{t('owner.caStatus')}</h2><ol className="space-y-3">{[1,2,3,4,5].map(step => <li key={step} className={`flex gap-3 items-center ${step === currentStep ? 'font-bold text-blue-800' : 'text-slate-500'}`} aria-current={step === currentStep ? 'step' : undefined}><span className="w-8 h-8 rounded-full bg-slate-100 grid place-items-center shrink-0">{step < currentStep ? <CheckCircle2 size={18} /> : step}</span>{t(`owner.step${step}`)}</li>)}</ol>{currentStep === 2 && <div className="space-y-3 border-t pt-4"><ul className="list-disc pl-5">{docTask?.documents_requested?.map((doc, i) => <li key={i}>{doc}</li>)}</ul><p className="text-slate-600">{t('owner.readyHint')}</p><button className="owner-primary w-full" disabled={actionLoading} onClick={handleOwnerSubmitDocs}>{t(actionLoading ? 'owner.saving' : 'owner.markDocuments')}</button></div>}</section>
+  if (ownerView) {
+    const labels = ['step1', 'stepDocs', 'stepPreparing', 'step4', 'step5']
+    return (
+      <section className="owner-card space-y-4">
+        <h2 className="owner-section-title">{t('owner.trackTitle')}</h2>
+        <ol className="owner-track">
+          {labels.map((key, i) => {
+            const step = i + 1
+            const state = step < currentStep ? 'is-done' : step === currentStep ? 'is-now' : ''
+            return (
+              <li key={key} className={state} aria-current={step === currentStep ? 'step' : undefined}>
+                <span className="owner-dot">{step < currentStep && <Check size={12} strokeWidth={3} />}</span>
+                <span className={step === currentStep ? 'font-semibold' : step > currentStep ? 'owner-sub' : ''}>{t(`owner.${key}`)}</span>
+              </li>
+            )
+          })}
+        </ol>
+        {currentStep === 2 && (
+          <div className="space-y-3 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+            <p className="font-semibold">{t('owner.sendTheseDocs')}</p>
+            <ul className="space-y-1 list-disc pl-5">
+              {docTask?.documents_requested?.map((doc, i) => <li key={i}>{doc}</li>)}
+            </ul>
+            <p className="owner-sub">{t('owner.readyHint')}</p>
+            <button className="owner-primary w-full" disabled={actionLoading} onClick={handleOwnerSubmitDocs}>
+              {t(actionLoading ? 'owner.saving' : 'owner.markDocuments')}
+            </button>
+          </div>
+        )}
+      </section>
+    )
+  }
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden font-sans text-ink">
       {/* 1. TOP HEADER & INTERACTIVE ROLE SWITCHER */}

@@ -1,38 +1,100 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Camera, Phone, MessageCircle, ArrowUpRight, Check, AlertCircle, CalendarDays, Files, Languages, HelpCircle, LogOut } from 'lucide-react'
+import { Camera, Files, Languages, HelpCircle, LogOut, MessageCircle } from 'lucide-react'
 import { useLanguage } from '@/lib/context/LanguageContext'
 import { useOwner } from './OwnerShell'
-import NoticeCard from './NoticeCard'
-import { extractDemandAmount } from '@/lib/demand'
-import { nearestFirst, noticeTone, noticeGroup, shortDate, money, daysLeft } from '@/lib/owner-ui'
+import NoticeCard, { useCountdown, useStatusLine } from './NoticeCard'
+import CAStrip from './CAStrip'
+import { nearestFirst, noticeTone, noticeGroup, noticeTitle, shortDate, waitingOnOwner } from '@/lib/owner-ui'
 import WhatsAppBotSimulator from '@/components/WhatsAppBotSimulator'
+
+const isOpen = (n: any) => n.status !== 'closed' && n.status !== 'filed'
+const GROUPS = ['needsAction', 'withCA', 'closed'] as const
 
 export function EmptyNotices({ filtered = false }: { filtered?: boolean }) {
   const { t } = useLanguage(); const { openAdd } = useOwner()
-  return <div className="owner-empty"><Files size={36} className="mx-auto mb-4 text-slate-400" /><h2 className="text-xl font-bold">{t('owner.noNotices')}</h2><p className="text-slate-600 mt-2 mb-5">{t(filtered ? 'owner.emptyFilter' : 'owner.emptyHint')}</p><button className="owner-primary w-full sm:w-auto" onClick={openAdd}>{t('owner.addNotice')}</button></div>
+  return (
+    <div className="owner-empty">
+      <Files size={32} className="mx-auto mb-3" style={{ color: 'var(--muted)' }} />
+      <h2 className="text-lg font-semibold">{t('owner.noNotices')}</h2>
+      <p className="owner-sub mt-1 mb-4">{t(filtered ? 'owner.emptyFilter' : 'owner.emptyHint')}</p>
+      {!filtered && <button className="owner-primary" onClick={openAdd}>{t('owner.addNotice')}</button>}
+    </div>
+  )
 }
+
 export function OwnerHome() {
-  const { notices, openAdd, contact } = useOwner(); const { t, lang } = useLanguage()
-  const overdue = notices.filter(n => noticeTone(n) === 'overdue').length
-  const soon = notices.filter(n => noticeTone(n) === 'soon').length
-  const active = notices.filter(n => !['closed', 'filed'].includes(n.status))
-  const missingDates = active.filter(n => daysLeft(n.deadline) === null).length
-  const next = nearestFirst(active.filter(n => daysLeft(n.deadline) !== null && daysLeft(n.deadline)! >= 0))[0]
-  const amount = active.reduce((sum, n) => sum + extractDemandAmount(n), 0)
-  const status = overdue ? t(overdue === 1 ? 'owner.overdueOne' : 'owner.overdueMany').replace('{count}', String(overdue)) : soon ? t('owner.dueSoon').replace('{count}', String(soon)) : missingDates ? t('owner.missingDates').replace('{count}', String(missingDates)) : t('owner.allGood')
-  return <div className="space-y-6"><h1 className="owner-page-title">{t('owner.hello')}</h1>
-    <div className={`owner-health tone-${overdue ? 'overdue' : soon ? 'soon' : missingDates ? 'neutral' : 'fine'}`}><span className="owner-health-icon">{overdue || soon || missingDates ? <AlertCircle size={28} /> : <Check size={28} />}</span><p className="text-2xl font-bold leading-snug">{status}</p></div>
-    <div className={`grid gap-4 ${amount > 0 ? 'lg:grid-cols-2' : ''}`}><section className="owner-card"><h2 className="owner-label"><CalendarDays size={20} />{t('owner.nextDeadline')}</h2>{next ? <Link href={`/dashboard/notices/${next.id}`} className="flex justify-between items-center gap-4 mt-3"><div><p className="text-3xl font-bold">{shortDate(next.deadline, lang)}</p><p className="text-slate-600 mt-2">{next.authority}</p></div><ArrowUpRight /></Link> : <p className="mt-3 text-slate-600">{t('owner.noUpcoming')}</p>}</section>{amount > 0 && <section className="owner-card"><h2 className="owner-label">{t('owner.moneyRisk')}</h2><p className="text-3xl font-bold mt-3 break-words">{money(amount)}</p><p className="text-slate-600 mt-2">{t('owner.moneyHint')}</p></section>}</div>
-    <div className="grid grid-cols-3 gap-2 sm:gap-4">{[{ key: 'scan', icon: Camera, action: openAdd }, { key: 'call', icon: Phone, action: () => contact('call') }, { key: 'whatsapp', icon: MessageCircle, action: () => contact('whatsapp') }].map(({ key, icon: Icon, action }) => <button key={key} onClick={action} className="owner-quick"><Icon size={24} /><span>{t(`owner.${key}`)}</span></button>)}</div>
-    <section><div className="flex items-center justify-between gap-3 mb-3"><h2 className="text-xl font-bold">{t('owner.recent')}</h2><Link className="owner-text-link" href="/dashboard/owner/notices">{t('owner.viewAll')}</Link></div>{notices.length ? <div className="space-y-3">{notices.slice(0, 3).map(n => <NoticeCard key={n.id} notice={n} />)}</div> : <EmptyNotices />}</section>
-  </div>
+  const { notices, openAdd } = useOwner()
+  const { t, lang } = useLanguage()
+  const countdown = useCountdown()
+  const statusLine = useStatusLine()
+  const open = nearestFirst(notices.filter(isOpen))
+  const done = notices.filter(n => !isOpen(n))
+  const urgent = open.find(n => waitingOnOwner(n)) || open[0]
+  const title = open.length === 0 ? t('owner.allClear')
+    : open.length === 1 ? t('owner.openOne')
+    : t('owner.openMany').replace('{count}', String(open.length))
+  return (
+    <div className="space-y-5">
+      <h1 className="owner-page-title">{title}</h1>
+
+      {urgent && (
+        <Link href={`/dashboard/notices/${urgent.id}`} className={`owner-urgent tone-${noticeTone(urgent)}`}>
+          <p className="text-sm font-semibold">{t('owner.mostUrgent')}</p>
+          <p className="text-xl font-semibold mt-1">{t(`owner.${noticeTitle(urgent)}`)} · {countdown(urgent)}</p>
+          <p className="mt-1">
+            {statusLine(urgent)}
+            {urgent.deadline && ` · ${t('owner.replyByShort')} ${shortDate(urgent.deadline, lang)}`}
+          </p>
+          <span className="owner-primary mt-3">{t('owner.openNotice')}</span>
+        </Link>
+      )}
+
+      <button className="owner-camera" onClick={openAdd}>
+        <Camera size={28} aria-hidden="true" />
+        <span>
+          <span className="block text-lg font-semibold">{t('owner.cameraTitle')}</span>
+          <span className="block text-sm">{t('owner.cameraHint')}</span>
+        </span>
+      </button>
+
+      <section>
+        <h2 className="owner-section-title">{t('owner.yourNotices')}</h2>
+        {notices.length
+          ? <div className="owner-list">{[...open, ...done].slice(0, 6).map(n => <NoticeCard key={n.id} notice={n} />)}</div>
+          : <EmptyNotices />}
+        {notices.length > 6 && <Link className="owner-text-link" href="/dashboard/owner/notices">{t('owner.viewAll')}</Link>}
+      </section>
+
+      <CAStrip />
+    </div>
+  )
 }
+
 export function OwnerNotices() {
-  const { notices } = useOwner(); const { t } = useLanguage(); const [filter, setFilter] = useState('needsAction')
+  const { notices } = useOwner()
+  const { t } = useLanguage()
+  const [filter, setFilter] = useState<string>(() => GROUPS.find(g => notices.some(n => noticeGroup(n) === g)) || 'needsAction')
   const visible = nearestFirst(notices.filter(n => noticeGroup(n) === filter))
-  return <div className="space-y-5"><div><h1 className="owner-page-title">{t('owner.notices')}</h1><p className="text-slate-600 mt-2">{t('owner.noticesHint')}</p></div><div className="flex flex-wrap gap-2" role="group" aria-label={t('owner.notices')}>{['needsAction', 'withCA', 'closed'].map(key => <button className="owner-chip" aria-pressed={filter === key} key={key} onClick={() => setFilter(key)}>{t(`owner.${key}`)} <span>({notices.filter(n => noticeGroup(n) === key).length})</span></button>)}</div>{visible.length ? <div className="grid gap-3 xl:grid-cols-2">{visible.map(n => <NoticeCard key={n.id} notice={n} />)}</div> : <EmptyNotices filtered={notices.length > 0} />}</div>
+  return (
+    <div className="space-y-4">
+      <h1 className="owner-page-title">{t('owner.notices')}</h1>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('owner.notices')}>
+        {GROUPS.map(key => {
+          const count = notices.filter(n => noticeGroup(n) === key).length
+          return (
+            <button key={key} className="owner-chip" aria-pressed={filter === key} onClick={() => setFilter(key)}>
+              {t(`owner.${key}`)}{count > 0 && ` · ${count}`}
+            </button>
+          )
+        })}
+      </div>
+      {visible.length
+        ? <div className="owner-list">{visible.map(n => <NoticeCard key={n.id} notice={n} />)}</div>
+        : <EmptyNotices filtered={notices.length > 0} />}
+    </div>
+  )
 }
 export function OwnerAccount() {
   const { business, email, referenceId } = useOwner(); const { t, lang, setLanguage } = useLanguage(); const [demo, setDemo] = useState(false)

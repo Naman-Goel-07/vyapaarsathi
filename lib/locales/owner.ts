@@ -50,6 +50,12 @@ export const ownerEn = {
   phoneUnavailable: 'Connect a CA first.', unknownStatus: 'Being checked',
   recordReply: 'Record reply as sent', recordHint: 'This updates the record in this app. Send the reply through the required government portal first.', recordConfirm: 'Have you sent the reply? This will update the app record.', replyRecorded: 'Reply recorded in this app.',
   hinglish: 'Hinglish', gujarati: 'Gujarati', marathi: 'Marathi', tamil: 'Tamil', telugu: 'Telugu', bengali: 'Bengali', kannada: 'Kannada',
+  openOne: '1 notice needs attention', openMany: '{count} notices need attention', allClear: 'All clear, nothing pending',
+  mostUrgent: 'Most urgent', openNotice: 'Open notice', cameraTitle: 'Got a new notice?', cameraHint: 'Take a photo and we will explain it',
+  yourNotices: 'Your notices', yourTurn: 'You need to send documents', caChecking: 'Your CA is checking it',
+  filedHint: 'Reply sent, waiting for the department', closedHint: 'Nothing more to do', replyByShort: 'Reply by',
+  listenSimple: 'Listen in simple words', moreLanguages: 'More languages', trackTitle: 'Where is your notice?',
+  stepDocs: 'Send documents to your CA', stepPreparing: 'CA is preparing the reply', sendTheseDocs: 'Send these to your CA',
 }
 
 export const ownerHi: Record<keyof typeof ownerEn, string> = {
@@ -103,4 +109,10 @@ export const ownerHi: Record<keyof typeof ownerEn, string> = {
   phoneUnavailable: 'पहले सीए जोड़ें।', unknownStatus: 'जाँच चल रही है',
   recordReply: 'जवाब भेजा गया दर्ज करें', recordHint: 'इससे केवल ऐप का रिकॉर्ड बदलेगा। पहले जरूरी सरकारी पोर्टल से जवाब भेजें।', recordConfirm: 'क्या आपने जवाब भेज दिया है? इससे ऐप का रिकॉर्ड बदलेगा।', replyRecorded: 'ऐप में जवाब दर्ज हो गया।',
   hinglish: 'हिंग्लिश', gujarati: 'गुजराती', marathi: 'मराठी', tamil: 'तमिल', telugu: 'तेलुगु', bengali: 'बंगाली', kannada: 'कन्नड़',
+  openOne: '1 नोटिस पर काम बाकी है', openMany: '{count} नोटिस पर काम बाकी है', allClear: 'सब ठीक है, कोई काम बाकी नहीं',
+  mostUrgent: 'सबसे ज़रूरी', openNotice: 'नोटिस खोलें', cameraTitle: 'नया नोटिस आया?', cameraHint: 'फोटो खींचिए, हम पढ़कर समझाएँगे',
+  yourNotices: 'आपके नोटिस', yourTurn: 'आपको दस्तावेज़ भेजने हैं', caChecking: 'सीए देख रहे हैं',
+  filedHint: 'जवाब भेज दिया, अब विभाग का इंतज़ार', closedHint: 'अब कुछ करना नहीं है', replyByShort: 'जवाब की आखिरी तारीख:',
+  listenSimple: 'आसान भाषा में सुनिए', moreLanguages: 'और भाषाएँ', trackTitle: 'नोटिस कहाँ तक पहुँचा',
+  stepDocs: 'सीए को दस्तावेज़ भेजें', stepPreparing: 'सीए जवाब तैयार कर रहे हैं', sendTheseDocs: 'ये दस्तावेज़ सीए को भेजें',
 }

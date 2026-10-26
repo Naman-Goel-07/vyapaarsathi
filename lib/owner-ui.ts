@@ -17,9 +17,13 @@ export function noticeTone(notice: any) {
   const days = daysLeft(notice.deadline)
   return days === null ? 'neutral' : days < 0 ? 'overdue' : days <= 7 ? 'soon' : 'fine'
 }
+export function waitingOnOwner(notice: any) {
+  return Array.isArray(notice.tasks) && notice.tasks.some((t: any) => t.owner_role === 'owner' && t.status === 'pending')
+}
 export function noticeGroup(notice: any) {
   if (notice.status === 'closed') return 'closed'
-  if (notice.status === 'filed' || notice.owner_role === 'ca') return 'withCA'
+  if (notice.status === 'filed') return 'withCA'
+  if (Array.isArray(notice.tasks) && !waitingOnOwner(notice)) return 'withCA'
   return 'needsAction'
 }
 export function nearestFirst(notices: any[]) {

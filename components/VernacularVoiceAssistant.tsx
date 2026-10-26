@@ -46,6 +46,8 @@ const LANGUAGES: LanguageOption[] = [
   { code: 'english', name: 'English', nativeLabel: 'English', locale: 'en-IN' }
 ];
 
+const WAVE = [8, 14, 10, 20, 12, 24, 9, 16, 22, 11, 18, 7, 15, 21, 10, 13, 19, 8, 12, 17]
+
 interface VernacularVoiceAssistantProps {
   ownerView?: boolean
   authority: string;
@@ -80,40 +82,29 @@ export default function VernacularVoiceAssistant({
   const activeOption = LANGUAGES.find(l => l.code === selectedLang) || LANGUAGES[0];
 
   // Fetch or update speech script when language changes
+  const requestId = useRef(0);
   const fetchBriefing = async (targetLang: LanguageCode) => {
+    const id = ++requestId.current;
     setLoading(true);
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       setIsPlaying(false);
       setIsPaused(false);
     }
-
     try {
       const res = await fetch('/api/voice-briefing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          authority,
-          form,
-          issue,
-          deadline,
-          penaltyAmount,
-          businessName,
-          language: targetLang
-        })
+        body: JSON.stringify({ authority, form, issue, deadline, penaltyAmount, businessName, language: targetLang })
       });
-
       const data = await res.json();
-      if (data.script) {
-        setScript(data.script);
-      }
+      if (id === requestId.current && data.script) setScript(data.script);
     } catch (err) {
       console.error('Failed to load vernacular voice briefing:', err);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchBriefing('hinglish');
   }, []);
@@ -123,6 +114,10 @@ export default function VernacularVoiceAssistant({
     setSelectedLang(lang);
     fetchBriefing(lang);
   };
+
+  useEffect(() => {
+    if (ownerView && lang === 'hi') handleLanguageSelect('hindi');
+  }, [ownerView, lang]);
 
   // Text-To-Speech Playback
   const handlePlay = () => {
@@ -209,7 +204,45 @@ export default function VernacularVoiceAssistant({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  if (ownerView) return <div className="space-y-4"><label className="owner-field">{t('owner.language')}<select value={selectedLang} onChange={e => handleLanguageSelect(e.target.value as LanguageCode)}>{LANGUAGES.map(l => <option key={l.code} value={l.code}>{t(`owner.${l.code === 'hindi' ? 'hindi' : l.code}`)}</option>)}</select></label><div className="flex flex-wrap gap-3"><button className="owner-primary flex-1" disabled={loading} onClick={isPlaying ? handlePause : handlePlay}>{t(loading ? 'owner.loading' : isPlaying ? 'owner.pause' : 'owner.play')}</button><button className="owner-secondary" onClick={handleRestart}>{t('owner.restart')}</button><button className="owner-secondary" onClick={handleWhatsAppShare}>{t('owner.share')}</button></div><label className="owner-field">{t('owner.speed')}<select value={playbackSpeed} onChange={e => setPlaybackSpeed(Number(e.target.value))}>{[.75,1,1.25,1.5].map(speed => <option key={speed} value={speed}>{speed}×</option>)}</select></label><details><summary>{t('owner.transcript')}</summary><p className="whitespace-pre-wrap mt-3">{script}</p></details></div>
+  if (ownerView) {
+    const quick: LanguageCode[] = ['hindi', 'hinglish', 'english']
+    return (
+      <section className="space-y-2">
+        <div className="owner-voice">
+          <button className="owner-voice-play" onClick={isPlaying ? handlePause : handlePlay} disabled={loading} aria-label={t(isPlaying ? 'owner.pause' : 'owner.play')}>
+            {loading ? <Loader2 className="animate-spin" size={22} /> : isPlaying ? <Pause size={22} /> : <Play size={22} />}
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">{t('owner.listenSimple')}</p>
+            <div className={`owner-wave ${isPlaying ? 'is-playing' : ''}`} aria-hidden="true">
+              {WAVE.map((h, i) => <i key={i} style={{ height: h }} />)}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('owner.language')}>
+          {quick.map(code => (
+            <button key={code} className="owner-chip" aria-pressed={selectedLang === code} disabled={loading} onClick={() => handleLanguageSelect(code)}>
+              {t(`owner.${code}`)}
+            </button>
+          ))}
+          <select
+            className="owner-chip"
+            aria-label={t('owner.moreLanguages')}
+            value={quick.includes(selectedLang) ? '' : selectedLang}
+            onChange={e => { if (e.target.value) handleLanguageSelect(e.target.value as LanguageCode) }}
+          >
+            <option value="">{t('owner.moreLanguages')}</option>
+            {LANGUAGES.filter(l => !quick.includes(l.code)).map(l => <option key={l.code} value={l.code}>{l.nativeLabel}</option>)}
+          </select>
+        </div>
+        <details>
+          <summary className="owner-sub">{t('owner.transcript')}</summary>
+          <p className="mt-2 whitespace-pre-wrap">{script}</p>
+          <button className="owner-text-link" onClick={handleWhatsAppShare}>{t('owner.share')}</button>
+        </details>
+      </section>
+    )
+  }
   return (
     <div className="bg-amber-500/10 border-2 border-amber-600/30 rounded-sm p-4 sm:p-5 my-4 relative overflow-hidden text-slate-900">
       {/* BACKGROUND GRAPHIC */}

@@ -45,7 +45,7 @@ export default async function OwnerWorkspace({ children }: { children: React.Rea
 
   const { data: notices } = await supabase
     .from('notices')
-    .select('*')
+    .select('*, tasks(id, status, owner_role, documents_requested)')
     .eq('business_id', profile.business_id)
     .order('created_at', { ascending: false })
 
