@@ -37,12 +37,13 @@
 .owner-bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 520px; z-index: 40;
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   background: var(--card); border-top: 1px solid var(--line);
 }
 .owner-nav-link, .owner-nav-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 4px 2px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; }
 .owner-nav-link[aria-current=page] { color: var(--brand); font-weight: 600; }
+@media (max-width: 359px) { .owner-bottom-nav .owner-nav-link, .owner-bottom-nav .owner-nav-add { font-size: 11px; } }
 .owner-nav-add span { display: grid; place-items: center; width: 52px; height: 52px; margin-top: -24px; border-radius: 50%; background: var(--brand); color: #fff; border: 4px solid var(--card); }
 .owner-nav-add b { font-weight: 600; color: var(--brand); }
 
