@@ -1,13 +1,12 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Camera, Files, Languages, HelpCircle, LogOut, MessageCircle, Send } from 'lucide-react'
+import { Camera, Files, Languages, HelpCircle, LogOut, Send } from 'lucide-react'
 import { useLanguage } from '@/lib/context/LanguageContext'
 import { useOwner } from './OwnerShell'
 import NoticeCard, { useCountdown, useStatusLine } from './NoticeCard'
 import CAStrip from './CAStrip'
 import { nearestFirst, noticeTone, noticeGroup, noticeTitle, shortDate, waitingOnOwner } from '@/lib/owner-ui'
-import WhatsAppBotSimulator from '@/components/WhatsAppBotSimulator'
 
 const isOpen = (n: any) => n.status !== 'closed' && n.status !== 'filed'
 const GROUPS = ['needsAction', 'withCA', 'closed'] as const
@@ -99,7 +98,6 @@ export function OwnerNotices() {
 export function OwnerAccount() {
   const { business, email, referenceId } = useOwner()
   const { t, lang, setLanguage } = useLanguage()
-  const [demo, setDemo] = useState(false)
   return (
     <div className="space-y-5">
       <h1 className="owner-page-title">{t('owner.account')}</h1>
@@ -127,11 +125,6 @@ export function OwnerAccount() {
           ))}
         </div>
       </section>
-      <section className="owner-card space-y-4">
-        <h2 className="owner-label"><MessageCircle size={20} />{t('owner.bot')}</h2>
-        <p className="text-slate-600">{t('owner.botHint')}</p>
-        <button className="owner-secondary w-full sm:w-auto" onClick={() => setDemo(true)}>{t('owner.botDemo')}</button>
-      </section>
       <details className="owner-card">
         <summary className="owner-label cursor-pointer"><HelpCircle size={20} />{t('owner.help')}</summary>
         <p className="mt-4 text-slate-600">{t('owner.helpText')}</p>
@@ -139,7 +132,6 @@ export function OwnerAccount() {
       <form action="/auth/signout" method="post">
         <button className="owner-secondary w-full sm:w-auto" type="submit"><LogOut size={20} />{t('owner.logout')}</button>
       </form>
-      {demo && <WhatsAppBotSimulator ownerView defaultOpen onClose={() => setDemo(false)} />}
     </div>
   )
 }

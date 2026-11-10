@@ -30,9 +30,9 @@ export default async function CADashboard() {
     notices = data || []
   }
   return (
-    <div className="space-y-6">
-      <ComplianceScoreboard notices={notices} />
+    <div className="ca-page">
       <CAHeaderBanner />
+      <ComplianceScoreboard notices={notices} />
       <CAInteractiveWorkbench initialNotices={notices} initialBusinesses={businesses || []} />
     </div>
   )

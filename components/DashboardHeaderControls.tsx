@@ -11,39 +11,39 @@ interface DashboardHeaderControlsProps {
 }
 
 export default function DashboardHeaderControls({ role }: DashboardHeaderControlsProps) {
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
 
   const roleLabel = role === 'ca' ? t('roles.caBench', 'CA Bench') : t('roles.ownerDesk', 'Owner Desk')
   const logoutLabel = t('common.logout', 'Logout')
 
   return (
-    <div className="flex items-center gap-3 sm:gap-4">
+    <div className={role === 'ca' ? 'ca-header-controls' : 'flex items-center gap-3 sm:gap-4'}>
       {/* Government-Style Language Toggle */}
-      <LanguageToggle />
+      <LanguageToggle showIcon={role !== 'ca'} />
       {role === 'ca' && (
-        <Link href="/dashboard/telegram" className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md px-2 hover:bg-gray-100"
-          aria-label={lang === 'hi' ? 'टेलीग्राम अपडेट' : 'Telegram updates'}>
+        <Link href="/dashboard/telegram" className="ca-header-action" aria-label={t('ca.telegram')} title={t('ca.telegram')}>
           <Send size={18} aria-hidden="true" />
-          <span className="hidden sm:inline">Telegram</span>
+          <span className="hidden md:inline">{t('ca.telegram')}</span>
         </Link>
       )}
 
       {/* Role Badge */}
-      <div className="flex items-center gap-2">
+      {role !== 'ca' && <div className="flex items-center gap-2">
         <span className="text-xs font-mono font-medium px-2 py-1 bg-ink text-white rounded-sm uppercase tracking-wider">
           {roleLabel}
         </span>
-      </div>
+      </div>}
 
       {/* Logout Action */}
       <form action="/auth/signout" method="post">
         <button
           type="submit"
-          className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-post-red transition-colors px-2.5 py-1.5 rounded-md hover:bg-gray-100"
+          className={role === 'ca' ? 'ca-header-action' : 'flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-post-red transition-colors px-2.5 py-1.5 rounded-md hover:bg-gray-100'}
           title={logoutLabel}
+          aria-label={logoutLabel}
         >
           <LogOut size={16} />
-          <span className="hidden sm:inline font-sans">{logoutLabel}</span>
+          <span className={role === 'ca' ? 'hidden md:inline' : 'hidden sm:inline font-sans'}>{logoutLabel}</span>
         </button>
       </form>
     </div>

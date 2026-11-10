@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { Award } from 'lucide-react'
 import { useLanguage } from '@/lib/context/LanguageContext'
 
 export interface ComplianceScoreboardProps {
@@ -9,38 +8,13 @@ export interface ComplianceScoreboardProps {
 }
 
 export default function ComplianceScoreboard({ notices = [] }: ComplianceScoreboardProps) {
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
   const totalTracked = notices.length
 
   if (totalTracked === 0) {
-    return (
-      <div className="bg-white border border-gray-300 p-5 rounded-sm shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="bg-forest-green text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-              <Award size={11} /> {t('scoreboard.badge', 'The Scoreboard')}
-            </span>
-            <span className="text-[10px] font-mono text-gray-500">
-              {t('scoreboard.preview', 'Preview: based only on notices tracked in VyapaarSathi.')}
-            </span>
-          </div>
-
-          <h3 className="text-lg font-serif font-bold text-ink flex items-center gap-2">
-            {t('scoreboard.title', 'Vyapaar Compliance Health Score')}
-          </h3>
-
-          <p className="text-xs text-gray-600 max-w-xl">
-            {t('scoreboard.subtitle', 'Unified statutory compliance index across GST, Municipal, and Labour authorities.')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-sm font-mono text-gray-500 italic">
-            {t('scoreboard.noNotices', 'No notices tracked yet')}
-          </div>
-        </div>
-      </div>
-    )
+    return <section className="ca-score ca-score-empty" aria-label={t('ca.score')}>
+      <strong>{t('ca.score')}</strong><span className="ca-muted">{t('ca.noScore')}</span>
+    </section>
   }
 
   // Current date in Asia/Kolkata (YYYY-MM-DD)
@@ -73,39 +47,14 @@ export default function ComplianceScoreboard({ notices = [] }: ComplianceScorebo
   const finalScore = Math.max(0, computedScore)
 
   return (
-    <div className="bg-white border border-gray-300 p-5 rounded-sm shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="bg-forest-green text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-            <Award size={11} /> {t('scoreboard.badge', 'The Scoreboard')}
-          </span>
-          <span className="text-[10px] font-mono text-gray-500">
-            {t('scoreboard.preview', 'Preview: based only on notices tracked in VyapaarSathi.')}
-          </span>
-        </div>
-
-        <h3 className="text-lg font-serif font-bold text-ink flex items-center gap-2">
-          {t('scoreboard.title', 'Vyapaar Compliance Health Score')}
-        </h3>
-
-        <p className="text-xs text-gray-600 max-w-xl">
-          {t('scoreboard.subtitle', 'Unified statutory compliance index across GST, Municipal, and Labour authorities.')}
-        </p>
-      </div>
-
-      {/* COMPLIANCE RATING & SCORE DIAL */}
-      <div className="flex items-center gap-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full border-4 border-forest-green flex items-center justify-center bg-forest-green/5">
-            <span className="font-mono text-lg font-bold text-forest-green">{finalScore}</span>
-          </div>
-          <div>
-            <p className="text-xs font-mono font-bold text-ink">
-              {overdueCount} {lang === 'hi' ? 'अतिदेय' : 'overdue'} · {dueThisWeekCount} {lang === 'hi' ? 'इस सप्ताह देय' : 'due this week'} · {totalTracked} {lang === 'hi' ? 'ट्रैक किए गए' : 'tracked'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <section aria-label={t('ca.score')}>
+      <dl className="ca-score">
+        <div><dt>{t('ca.score')}</dt><dd>{finalScore}<small>/100</small></dd></div>
+        <div><dt>{t('ca.overdue')}</dt><dd className={overdueCount ? 'ca-red' : undefined}>{overdueCount}</dd></div>
+        <div><dt>{t('ca.dueWeek')}</dt><dd className={dueThisWeekCount ? 'ca-amber' : undefined}>{dueThisWeekCount}</dd></div>
+        <div><dt>{t('ca.tracked')}</dt><dd>{totalTracked}</dd></div>
+      </dl>
+      <p className="ca-muted ca-score-note">{t('ca.scoreHint')}</p>
+    </section>
   )
 }

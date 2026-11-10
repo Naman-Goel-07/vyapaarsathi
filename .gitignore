@@ -11,6 +11,7 @@
 # next.js
 /.next/
 /out/
+/next.config.mjs
 
 # production
 /build
@@ -92,10 +93,15 @@ Desktop.ini
 *.orig
 *.rej
 
-# Private credentials and local database backups (keep schema sources tracked)
+# Private credentials and local database backups (keep migrations tracked)
 /secrets/
 /.secrets/
+/.ssh/
+/.aws/
+/.netrc
+/_netrc
 *.key
+*.ppk
 *.p12
 *.pfx
 *.jks
@@ -103,6 +109,12 @@ Desktop.ini
 /backups/
 *.dump
 *.sql.gz
+
+# Local Supabase CLI state and schema files
+/supabase/.temp/
+/supabase/.branches/
+/supabase/schema.json
+/supabase/schema.sql
 
 # Python caches from local document/audit utilities
 __pycache__/

@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Clock, ShieldCheck, Filter } from 'lucide-react'
-import { extractDemandAmount } from '@/lib/demand'
+import { ArrowRight, FileText, Inbox } from 'lucide-react'
+import { useLanguage } from '@/lib/context/LanguageContext'
+import { shortDate } from '@/lib/owner-ui'
+import { extractDemandAmount, formatDemandDisplay as money } from '@/lib/demand'
 
 type Notice = {
   id: string
@@ -28,6 +30,7 @@ export default function CATriageHeatmap({
   notices: Notice[]
   selectedBusinessId?: string | null
 }) {
+  const { t, lang } = useLanguage()
   const [filter, setFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING' | 'SAFE'>('ALL')
   
   const today = new Date()
@@ -71,114 +74,66 @@ export default function CATriageHeatmap({
   const warningCount = decoratedNotices.filter(n => n.threatLevel === 'WARNING').length
   const safeCount = decoratedNotices.filter(n => n.threatLevel === 'SAFE').length
 
+  const filters = [
+    ['ALL', notices.length],
+    ['CRITICAL', criticalCount],
+    ['WARNING', warningCount],
+    ['SAFE', safeCount],
+  ] as const
+
   return (
-    <div className="space-y-4">
-      {/* TRIAGE CONTROLS */}
-      <div className="bg-white p-4 rounded-sm shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-gray-400" />
-          <span className="font-mono text-sm font-bold text-ink uppercase tracking-wider">Triage Filters:</span>
+    <section className="ca-panel ca-queue" aria-labelledby="ca-queue-title">
+      <header className="ca-panel-heading">
+        <h2 id="ca-queue-title">{t('ca.queue')}</h2>
+        <p className="ca-muted">{t('ca.queueHint')}</p>
+        <div className="ca-filters" role="group" aria-label={t('ca.filters')}>
+          {filters.map(([key, count]) => (
+            <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key}>
+              {t(`ca.${key}`)} <span>{count}</span>
+            </button>
+          ))}
         </div>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setFilter('ALL')}
-            className={`px-3 py-1.5 text-xs font-mono font-bold rounded-sm border transition-colors ${filter === 'ALL' ? 'bg-ink text-white border-ink' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
-          >
-            ALL ({notices.length})
-          </button>
-          <button 
-            onClick={() => setFilter('CRITICAL')}
-            className={`px-3 py-1.5 text-xs font-mono font-bold rounded-sm border transition-colors ${filter === 'CRITICAL' ? 'bg-post-red text-white border-post-red' : 'bg-red-50 text-red-800 border-red-200 hover:bg-red-100'}`}
-          >
-            CRITICAL ({criticalCount})
-          </button>
-          <button 
-            onClick={() => setFilter('WARNING')}
-            className={`px-3 py-1.5 text-xs font-mono font-bold rounded-sm border transition-colors ${filter === 'WARNING' ? 'bg-amber-500 text-white border-amber-600' : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'}`}
-          >
-            WARNING ({warningCount})
-          </button>
-          <button 
-            onClick={() => setFilter('SAFE')}
-            className={`px-3 py-1.5 text-xs font-mono font-bold rounded-sm border transition-colors ${filter === 'SAFE' ? 'bg-forest-green text-white border-forest-green' : 'bg-green-50 text-green-800 border-green-200 hover:bg-green-100'}`}
-          >
-            SAFE/FILED ({safeCount})
-          </button>
-        </div>
-      </div>
+      </header>
 
-      {/* HEATMAP GRID */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredNotices.length === 0 ? (
-          <div className="col-span-full border border-dashed border-gray-300 rounded-sm p-12 text-center bg-gray-50">
-             <p className="text-gray-500 font-medium">No notices match this threat level.</p>
-          </div>
-        ) : (
-          filteredNotices.map((notice) => {
-            const isCritical = notice.threatLevel === 'CRITICAL'
-            const isWarning = notice.threatLevel === 'WARNING'
-            
-            // Visual mapping based on threat
-            const borderColor = isCritical ? 'border-post-red' : isWarning ? 'border-amber-400' : 'border-gray-200'
-            const headerBg = isCritical ? 'bg-post-red text-white' : isWarning ? 'bg-amber-400 text-ink' : 'bg-gray-50 text-ink'
-            
+      {filteredNotices.length === 0 ? (
+        <div className="ca-queue-empty">
+          <Inbox size={30} aria-hidden="true" />
+          <h3>{t('ca.noNotices')}</h3>
+          <p className="ca-muted">{t('ca.noNoticesHint')}</p>
+        </div>
+      ) : (
+        <ul className="ca-notice-list">
+          {filteredNotices.map(notice => {
+            const isFiled = notice.status === 'filed'
+            const isClosed = notice.status === 'closed'
+            const priority = notice.threatLevel === 'CRITICAL' ? 'red' : notice.threatLevel === 'WARNING' ? 'amber' : 'neutral'
+            const label = isClosed ? t('ca.closed') : isFiled ? t('ca.filed') : notice.threatLevel === 'SAFE' ? t('ca.open') : t(`ca.${notice.threatLevel}`)
+            const countdown = notice.daysLeft !== 999 && notice.threatLevel !== 'SAFE'
+              ? notice.daysLeft <= 0 ? t('ca.overdue') : t('ca.daysLeft').replace('{count}', String(notice.daysLeft))
+              : null
             return (
-              <div key={notice.id} className={`bg-white rounded-sm shadow-sm border-2 ${borderColor} flex flex-col relative overflow-hidden group hover:shadow-md transition-shadow`}>
-                
-                {/* Heatmap Header */}
-                <div className={`${headerBg} px-4 py-2 flex justify-between items-center border-b ${borderColor}`}>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    {isCritical && <AlertTriangle size={12} />}
-                    {isWarning && <Clock size={12} />}
-                    {notice.threatLevel === 'SAFE' && <ShieldCheck size={12} />}
-                    {notice.threatLevel}
-                  </span>
-                  {notice.daysLeft !== 999 && notice.threatLevel !== 'SAFE' && (
-                    <span className="text-[10px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded-sm">
-                      {notice.daysLeft <= 0 ? 'OVERDUE' : `${notice.daysLeft} DAYS LEFT`}
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4 space-y-4 flex-1">
-                  <div className="flex justify-between items-start border-b border-gray-100 pb-2">
-                    <span className="text-xs font-mono font-bold tracking-wider text-gray-500">
-                      {(notice.businesses as any)?.name?.toUpperCase() || 'UNKNOWN CLIENT'}
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink bg-gray-100 px-2 py-0.5 rounded-sm">
-                      ₹{((extractDemandAmount(notice) || 0) / 1000).toFixed(1)}k RISK
-                    </span>
+              <li key={notice.id}>
+                <Link href={`/dashboard/notices/${notice.id}`} className="ca-notice">
+                  <span className="ca-notice-icon" aria-hidden="true"><FileText size={20} /></span>
+                  <div className="ca-notice-copy">
+                    <p className="ca-muted">{notice.businesses?.name || t('ca.unknownClient')}</p>
+                    <h3>{notice.form || notice.authority || t('ca.notice')}</h3>
+                    {notice.authority && notice.form && <p className="ca-muted">{notice.authority}</p>}
+                    {notice.issue && <p className="ca-subject line-clamp-2">{notice.issue}</p>}
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Authority / Dept</p>
-                    <h3 className="font-mono text-sm font-semibold text-ink line-clamp-1">{notice.authority}</h3>
+                  <div className="ca-notice-meta">
+                    <span className={`ca-status ca-status-${priority}`}>{label}</span>
+                    <strong className="ca-money">{money(extractDemandAmount(notice))}</strong>
+                    {notice.deadline && <span className="ca-muted">{t('ca.due')} {shortDate(notice.deadline, lang)}</span>}
+                    {countdown && <span className={`ca-${priority}`}>{countdown}</span>}
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Subject</p>
-                    <p className="text-sm font-medium line-clamp-2 leading-relaxed">{notice.issue}</p>
-                  </div>
-                </div>
-
-                <div className="p-4 pt-0">
-                  <Link 
-                    href={`/dashboard/notices/${notice.id}`} 
-                    className={`block w-full text-center py-2 text-xs font-bold font-mono tracking-wider rounded-sm transition-colors ${
-                      isCritical ? 'bg-red-50 text-post-red hover:bg-post-red hover:text-white' :
-                      isWarning ? 'bg-amber-50 text-amber-800 hover:bg-amber-400 hover:text-ink' :
-                      'bg-gray-100 text-ink hover:bg-ink hover:text-white'
-                    }`}
-                  >
-                    ACCESS CASE FILE
-                  </Link>
-                </div>
-              </div>
+                  <span className="ca-notice-action"><span className="sr-only">{t('ca.viewFile')}</span><ArrowRight size={19} aria-hidden="true" /></span>
+                </Link>
+              </li>
             )
-          })
-        )}
-      </div>
-    </div>
+          })}
+        </ul>
+      )}
+    </section>
   )
 }

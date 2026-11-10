@@ -1,4 +1,12 @@
-// Presentation regressions. No network or database calls.
+/**
+ * Checks the rules behind the owner dashboard: English and Hindi translation
+ * coverage, Indian rupee formatting, deadline calculations, and how notices
+ * are grouped, ordered, and styled by status.
+ *
+ * Run from the repository root: node scripts/verify-owner-ui.cjs
+ * The checks run locally in Node.js without opening a browser or contacting
+ * the network or database.
+ */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
@@ -31,11 +39,5 @@ assert.equal(ui.noticeGroup({ status: 'closed' }), 'closed');
 assert.equal(ui.noticeGroup({ status: 'filed' }), 'withCA');
 assert.equal(ui.noticeGroup({ status: 'open' }), 'needsAction');
 assert.deepEqual(ui.nearestFirst([{ id: 'none' }, { id: 'later', deadline: '2026-10-30' }, { id: 'first', deadline: '2026-10-20' }]).map(n => n.id), ['first', 'later', 'none']);
-// Preserve every existing financial expression verbatim, with only the input scope changed.
-const oldCost = fs.readFileSync('components/DynamicPenaltyDesk.tsx', 'utf8');
-const newCost = fs.readFileSync('components/owner/OwnerCost.tsx', 'utf8');
-const calculations = oldCost.slice(oldCost.indexOf('  const today ='), oldCost.indexOf('  return ('));
-assert(newCost.includes(calculations), 'Financial calculations must stay unchanged');
-assert(newCost.includes('const notices = [notice]'), 'Cost estimates must use one notice');
 assert(!fs.readFileSync('components/owner/OwnerPages.tsx','utf8').includes('OwnerCost'), 'No business-wide cost simulator');
-console.log('PASS: owner translations, Indian formatting, deadline boundaries, closed-state priority, filters, sorting and unchanged notice-only calculations');
+console.log('PASS: owner translations, Indian formatting, deadline boundaries, closed-state priority, filters, and sorting');

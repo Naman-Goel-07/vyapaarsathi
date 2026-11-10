@@ -1,18 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import {
-  AlertTriangle,
-  Clock,
-  TrendingUp,
-  ShieldAlert,
-  Sliders,
-  RotateCcw,
-  Info,
-  Calendar,
-  CheckCircle2
-} from 'lucide-react'
-import { extractDemandAmount } from '@/lib/demand'
+import { RotateCcw, SlidersHorizontal } from 'lucide-react'
+import { extractDemandAmount, formatDemandDisplay as money } from '@/lib/demand'
 import { useLanguage } from '@/lib/context/LanguageContext'
 
 interface DynamicPenaltyDeskProps {
@@ -32,7 +22,7 @@ interface DynamicPenaltyDeskProps {
 }
 
 export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskProps) {
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
   const [simulatedDays, setSimulatedDays] = useState(0)
   const [showSimulator, setShowSimulator] = useState(false)
 
@@ -89,170 +79,48 @@ export default function DynamicPenaltyDesk({ notices = [] }: DynamicPenaltyDeskP
   const fightTotal = hasExposure ? (displayTaxDemand + fightPenalty + fightInterest + fightLateFee) : 0
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-sm p-5 space-y-5 relative overflow-hidden text-ink shadow-sm">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="bg-post-red text-white text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold flex items-center gap-1">
-              <ShieldAlert size={11} /> {lang === 'hi' ? 'जोखिम इंजन' : 'Risk Engine'}
-            </span>
-            <span className="text-xs font-mono text-gray-500 font-semibold">
-              S.73 (Penalty) & Rule 88B (18% Interest)
-            </span>
-          </div>
-          <h3 className="text-ink font-bold font-serif text-lg sm:text-xl tracking-tight">
-            {lang === 'hi' ? 'मुकदमा बनाम शीघ्र निपटान मैट्रिक्स' : 'Fight vs. Settle Matrix'}
-          </h3>
-          <p className="text-xs text-gray-600 max-w-xl">
-            {lang === 'hi'
-              ? 'वैधानिक देयता का लाइव चक्रवृद्धि संचय। देखें कि नोटिस की अनदेखी करने पर क्या लागत आती है।'
-              : 'Live compounding accumulation of statutory exposure. See exactly what it costs to ignore a notice.'}
-          </p>
-        </div>
-
-        <div className="bg-red-50 border-2 border-post-red/40 px-4 py-2 rounded-sm text-right shrink-0">
-          <p className="text-[10px] font-mono text-post-red uppercase font-bold tracking-wider">
-            {lang === 'hi' ? 'कुल जोखिम राशि' : 'Total Money At Risk'}
-          </p>
-          <p className="text-2xl font-bold text-post-red font-mono tracking-tight">
-            ₹{fightTotal.toLocaleString('en-IN')}
-          </p>
-        </div>
+    <div className="ca-exposure-body">
+      <div className="ca-exposure-overview">
+        <span className="ca-muted">{t('ca.estimate')}</span>
+        <div><span>{t('ca.totalRisk')}</span><strong>{money(fightTotal)}</strong></div>
+      </div>
+      <div className="ca-scenarios">
+        {[
+          {
+            key: 'settle', period: 'settlePeriod', total: settleTotal,
+            lines: [['tax', money(displayTaxDemand)], ['reducedPenalty', money(settlePenalty)], ['interestAndFees', t('ca.waived')]],
+          },
+          {
+            key: 'fight', period: 'fightPeriod', total: fightTotal,
+            lines: [['tax', money(displayTaxDemand)], ['fullPenalty', money(fightPenalty)], ['interest', money(fightInterest)], ['fees', money(fightLateFee)]],
+          },
+        ].map(scenario => (
+          <section key={scenario.key} className="ca-scenario">
+            <h3>{t(`ca.${scenario.key}`)}</h3>
+            <p className="ca-muted">{t(`ca.${scenario.period}`)}</p>
+            <dl>
+              {scenario.lines.map(([label, value]) => <div key={label}><dt>{t(`ca.${label}`)}</dt><dd>{value}</dd></div>)}
+              <div className="ca-scenario-total"><dt>{t('ca.total')}</dt><dd>{money(scenario.total)}</dd></div>
+            </dl>
+          </section>
+        ))}
       </div>
 
-      {/* MATRIX: SETTLE VS FIGHT */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* OPTION A: SETTLE */}
-        <div className="border border-green-200 bg-green-50/30 rounded-sm p-4 space-y-3">
-          <div className="flex justify-between items-center border-b border-green-200 pb-2">
-            <h4 className="font-bold text-forest-green flex items-center gap-1.5">
-              <CheckCircle2 size={16} /> {lang === 'hi' ? 'विकल्प क: शीघ्र समाधान (सैटल)' : 'Option A: Settle Early'}
-            </h4>
-            <span className="text-[10px] font-mono font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-xs">
-              {lang === 'hi' ? '30 दिनों के भीतर' : 'Within 30 Days'}
-            </span>
-          </div>
-          
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'मूल कर मांग' : 'Base Tax Demand'}</span>
-              <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'धारा 73 रियायती शास्ति (25%)' : 'S.73 Concessional Penalty (25%)'}</span>
-              <span className="font-semibold text-ink">₹{settlePenalty.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'ब्याज / विलंब शुल्क' : 'Interest / Late Fees'}</span>
-              <span className="font-semibold text-forest-green">{lang === 'hi' ? 'माफ़' : 'Waived'}</span>
-            </div>
-          </div>
-          
-          <div className="pt-2 border-t border-green-200 flex justify-between items-center">
-            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">{lang === 'hi' ? 'कुल देय राशि' : 'Total Payable'}</span>
-            <span className="text-lg font-bold text-forest-green font-mono">₹{settleTotal.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* OPTION B: FIGHT & LOSE */}
-        <div className="border border-red-200 bg-red-50/30 rounded-sm p-4 space-y-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-8 h-8 bg-post-red/10 rotate-45 translate-x-4 -translate-y-4"></div>
-          <div className="flex justify-between items-center border-b border-red-200 pb-2">
-            <h4 className="font-bold text-post-red flex items-center gap-1.5">
-              <AlertTriangle size={16} /> {lang === 'hi' ? 'विकल्प ख: मुकदमा व हार' : 'Option B: Fight & Lose'}
-            </h4>
-            <span className="text-[10px] font-mono font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded-xs">
-              {lang === 'hi' ? 'मुकदमेबाजी (1 वर्ष+)' : 'Litigation (1 Yr+)'}
-            </span>
-          </div>
-          
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'मूल कर मांग' : 'Base Tax Demand'}</span>
-              <span className="font-semibold text-ink">₹{displayTaxDemand.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'धारा 73 पूर्ण शास्ति (100%)' : 'S.73 Full Penalty (100%)'}</span>
-              <span className="font-semibold text-post-red">₹{fightPenalty.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'संचयी 18% वार्षिक ब्याज' : 'Accumulated 18% Interest'}</span>
-              <span className="font-semibold text-post-red">₹{fightInterest.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{lang === 'hi' ? 'धारा 47 विलंब फाइलिंग शुल्क' : 'S.47 Late Filing Fees'}</span>
-              <span className="font-semibold text-post-red">₹{fightLateFee.toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-          
-          <div className="pt-2 border-t border-red-200 flex justify-between items-center">
-            <span className="font-bold text-ink uppercase text-[11px] tracking-wider">{lang === 'hi' ? 'कुल वैधानिक जोखिम' : 'Total Exposure'}</span>
-            <span className="text-lg font-bold text-post-red font-mono">₹{fightTotal.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* INTERACTIVE HACKATHON SIMULATOR BAR */}
-      <div className="pt-2 flex justify-between items-center bg-gray-50 border border-gray-200 rounded-sm p-3">
-        <button
-          onClick={() => setShowSimulator(!showSimulator)}
-          className="text-xs font-mono font-bold text-ink hover:text-blue-600 flex items-center gap-1.5 cursor-pointer underline underline-offset-2 transition-colors"
-        >
-          <Sliders size={13} />
-          {lang === 'hi'
-            ? (showSimulator ? 'दैनिक ब्याज सिम्युलेटर बंद करें' : 'दैनिक ब्याज सिम्युलेटर जांचें')
-            : (showSimulator ? 'Close Daily Interest Simulator' : 'Test Daily Interest Simulator')}
+      <div className="ca-simulator-tools">
+        <button type="button" className="ca-header-action" onClick={() => setShowSimulator(!showSimulator)} aria-expanded={showSimulator} aria-controls="ca-interest-controls">
+          <SlidersHorizontal size={17} aria-hidden="true" /> {t('ca.simulator')}
         </button>
-
-        <span className="text-[11px] font-mono text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 shadow-xs">
-          {lang === 'hi'
-            ? <>अंतर: <strong className="text-ink">समाधान करने पर ₹{(fightTotal - settleTotal).toLocaleString('en-IN')} की बचत।</strong></>
-            : <>Difference: <strong className="text-ink">₹{(fightTotal - settleTotal).toLocaleString('en-IN')} saved by settling.</strong></>}
-        </span>
+        <p className="ca-muted">{t('ca.difference')}: <strong>{money(fightTotal - settleTotal)}</strong></p>
       </div>
-
       {showSimulator && (
-        <div className="bg-white p-4 rounded-xs border-2 border-ink shadow-sm space-y-3 text-xs font-mono">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-            <span className="font-bold text-ink flex items-center gap-1.5">
-              <Clock size={13} className="text-blue-600" />
-              Simulate Days Elapsed After Statutory Deadline:
-            </span>
-            <span className="text-blue-700 font-bold text-sm bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-              +{simulatedDays} Days Past Due
-            </span>
-          </div>
-
-          <input
-            type="range"
-            min="0"
-            max="365"
-            step="1"
-            value={simulatedDays}
-            onChange={(e) => setSimulatedDays(Number(e.target.value))}
-            className="w-full accent-blue-600 cursor-pointer my-2"
-          />
-
-          <div className="flex justify-between text-[10px] text-gray-400">
-            <span>T+0</span>
-            <span>+30 Days</span>
-            <span>+90 Days</span>
-            <span>+180 Days</span>
-            <span>+365 Days</span>
-          </div>
-
-          <div className="bg-blue-50/50 p-2.5 rounded border border-blue-100 text-[11px] text-gray-700 flex justify-between items-center mt-2">
-            <span>
-              💡 <em>Live Calculation:</em> At Day {simulatedDays}, 18% p.a. interest adds <strong>₹{Math.round(displayTaxDemand * (0.18/365) * simulatedDays).toLocaleString('en-IN')}</strong> to your exposure.
-            </span>
-            {simulatedDays > 0 && (
-              <button
-                onClick={() => setSimulatedDays(0)}
-                className="text-gray-500 hover:text-ink text-[10px] font-bold flex items-center gap-1 underline shrink-0 ml-4"
-              >
-                <RotateCcw size={11} /> Reset
-              </button>
-            )}
+        <div className="ca-simulator" id="ca-interest-controls">
+          <label htmlFor="ca-interest-days">{t('ca.daysPastDue')} <strong>{t('ca.days').replace('{count}', String(simulatedDays))}</strong></label>
+          <input id="ca-interest-days" type="range" min="0" max="365" step="1" value={simulatedDays}
+            onChange={(e) => setSimulatedDays(Number(e.target.value))} />
+          <div className="ca-range-ticks" aria-hidden="true"><span>0</span><span>30</span><span>90</span><span>180</span><span>365</span></div>
+          <div className="ca-simulator-tools">
+            <p>{t('ca.addedInterest')}: <strong>{money(Math.round(displayTaxDemand * (0.18/365) * simulatedDays))}</strong></p>
+            {simulatedDays > 0 && <button type="button" className="ca-header-action" onClick={() => setSimulatedDays(0)}><RotateCcw size={17} aria-hidden="true" /> {t('ca.reset')}</button>}
           </div>
         </div>
       )}

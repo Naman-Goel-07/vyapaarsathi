@@ -4,6 +4,8 @@ import React, { useState } from 'react'
 import CAClientPortfolio, { ClientBusinessSummary } from '@/components/CAClientPortfolio'
 import DynamicPenaltyDesk from '@/components/DynamicPenaltyDesk'
 import CATriageHeatmap from '@/components/CATriageHeatmap'
+import { Calculator, ChevronDown } from 'lucide-react'
+import { useLanguage } from '@/lib/context/LanguageContext'
 import { extractDemandAmount } from '@/lib/demand'
 
 interface NoticeItem {
@@ -37,6 +39,7 @@ export default function CAInteractiveWorkbench({
   initialNotices = [],
   initialBusinesses = []
 }: CAInteractiveWorkbenchProps) {
+  const { t } = useLanguage()
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null)
 
   // Map known businesses or synthesize client portfolio from notices
@@ -88,22 +91,23 @@ export default function CAInteractiveWorkbench({
     : initialNotices
 
   return (
-    <div className="space-y-6">
-      {/* 1. CLIENT BUSINESS PORTFOLIO (ORDER 4) */}
+    <div className="ca-workbench">
       <CAClientPortfolio
         businesses={clientSummaries}
         selectedBusinessId={selectedBusinessId}
         onSelectBusiness={setSelectedBusinessId}
       />
-
-      {/* 2. DYNAMIC PENALTY EXPOSURE ENGINE (SCOPED OR AGGREGATE) */}
-      <DynamicPenaltyDesk notices={filteredNotices} />
-
-      {/* 3. CA TRIAGE HEATMAP (ORDER 3) */}
-      <CATriageHeatmap
-        notices={filteredNotices}
-        selectedBusinessId={selectedBusinessId}
-      />
+      <div className="ca-workbench-main">
+        <details className="ca-panel ca-disclosure">
+          <summary>
+            <Calculator size={21} aria-hidden="true" />
+            <span><strong>{t('ca.exposure')}</strong><small>{t('ca.exposureHint')}</small></span>
+            <ChevronDown size={19} className="ca-disclosure-arrow" aria-hidden="true" />
+          </summary>
+          <DynamicPenaltyDesk notices={filteredNotices} />
+        </details>
+        <CATriageHeatmap notices={filteredNotices} selectedBusinessId={selectedBusinessId} />
+      </div>
     </div>
   )
 }
