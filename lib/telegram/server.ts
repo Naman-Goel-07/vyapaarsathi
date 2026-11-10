@@ -1,6 +1,11 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 
+function configurationError(problem: 'Missing' | 'Invalid', settings: string[]) {
+  console.warn(`[telegram] ${problem} configuration: ${settings.join(', ')}`)
+  return null
+}
+
 export function telegramConfig() {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const username = process.env.TELEGRAM_BOT_USERNAME
@@ -8,18 +13,37 @@ export function telegramConfig() {
   const dispatchSecret = process.env.TELEGRAM_DISPATCH_SECRET
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const appUrl = process.env.TELEGRAM_APP_URL
-  if (!token || !username || !webhookSecret || !dispatchSecret || !supabaseUrl || !serviceKey || !appUrl) return null
-  if (!/^\d+:[A-Za-z0-9_-]+$/.test(token) || !/^[A-Za-z0-9_]{5,32}$/.test(username)) return null
-  if (!/^[A-Za-z0-9_-]{32,256}$/.test(webhookSecret) || dispatchSecret.length < 32) return null
+  const vercelBranchUrl = process.env.VERCEL_BRANCH_URL
+  const appUrl = process.env.TELEGRAM_APP_URL || (vercelBranchUrl && `https://${vercelBranchUrl}`)
+  if (!token || !username || !webhookSecret || !dispatchSecret || !supabaseUrl || !serviceKey || !appUrl) {
+    const settings = {
+      TELEGRAM_BOT_TOKEN: token,
+      TELEGRAM_BOT_USERNAME: username,
+      TELEGRAM_WEBHOOK_SECRET: webhookSecret,
+      TELEGRAM_DISPATCH_SECRET: dispatchSecret,
+      NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+      SUPABASE_SERVICE_ROLE_KEY: serviceKey,
+      'TELEGRAM_APP_URL or VERCEL_BRANCH_URL': appUrl,
+    }
+    return configurationError('Missing', Object.entries(settings).filter(([, value]) => !value).map(([name]) => name))
+  }
+
+  const invalidSettings = []
+  if (!/^\d+:[A-Za-z0-9_-]+$/.test(token)) invalidSettings.push('TELEGRAM_BOT_TOKEN')
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(username)) invalidSettings.push('TELEGRAM_BOT_USERNAME')
+  if (!/^[A-Za-z0-9_-]{32,256}$/.test(webhookSecret)) invalidSettings.push('TELEGRAM_WEBHOOK_SECRET')
+  if (dispatchSecret.length < 32) invalidSettings.push('TELEGRAM_DISPATCH_SECRET')
+  if (invalidSettings.length) return configurationError('Invalid', invalidSettings)
 
   try {
     const url = new URL(appUrl)
-    if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) return null
-    return { token, username, webhookSecret, dispatchSecret, supabaseUrl, serviceKey, origin: url.origin }
+    if (url.protocol === 'https:' && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash) {
+      return { token, username, webhookSecret, dispatchSecret, supabaseUrl, serviceKey, origin: url.origin }
+    }
   } catch {
-    return null
+    // Report the setting name below without logging the URL.
   }
+  return configurationError('Invalid', ['TELEGRAM_APP_URL or VERCEL_BRANCH_URL'])
 }
 
 type Config = NonNullable<ReturnType<typeof telegramConfig>>
