@@ -1,5 +1,6 @@
 'use client'
 import { useLanguage } from '@/lib/context/LanguageContext'
+import { useRouter } from 'next/navigation'
 
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -170,6 +171,7 @@ export default function CollaborativePipeline({
   form
 }: CollaborativePipelineProps) {
   const { t, lang } = useLanguage()
+  const router = useRouter()
 
   // Normalize initial status to enum values
   const normalizedInitialStatus: NoticeStatus =
@@ -590,7 +592,7 @@ export default function CollaborativePipeline({
               {docTask?.documents_requested?.map((doc, i) => <li key={i}>{doc}</li>)}
             </ul>
             <p className="owner-sub">{t('owner.readyHint')}</p>
-            <button className="owner-primary w-full" disabled={actionLoading} onClick={handleOwnerSubmitDocs}>
+            <button className="owner-primary w-full" disabled={actionLoading} onClick={async () => { await handleOwnerSubmitDocs(); router.refresh() }}>
               {t(actionLoading ? 'owner.saving' : 'owner.markDocuments')}
             </button>
           </div>

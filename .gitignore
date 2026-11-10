@@ -59,6 +59,7 @@ tmp/
 
 # Documentation & Scratch Files
 *.md
+!/docs/telegram-setup.md
 PORTAL_FEATURES.md
 vyapaar_sathi_prompt.md
 handoff_master_prompt.md
@@ -106,3 +107,5 @@ Desktop.ini
 # Python caches from local document/audit utilities
 __pycache__/
 *.py[cod]
+
+telegram-setup.md

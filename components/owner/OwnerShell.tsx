@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Home, Files, Plus, UserRound, Store, Bell, Camera, Upload, MessageCircle, Phone, ChevronRight } from 'lucide-react'
 import { useLanguage } from '@/lib/context/LanguageContext'
+import { createClient } from '@/lib/supabase/client'
 import OwnerModal from './OwnerModal'
 import { noticeTone } from '@/lib/owner-ui'
 
@@ -16,13 +17,20 @@ export default function OwnerShell({ children, business, notices, initialCA, ref
   const { t, lang, toggleLanguage } = useLanguage()
   const path = usePathname()
   const router = useRouter()
-  const previousPath = useRef(path)
+  // Reload the notice list only when a notice changes or the app comes back on screen, not on every tap.
   useEffect(() => {
-    if (previousPath.current !== path) {
-      previousPath.current = path
-      router.refresh()
-    }
-  }, [path, router])
+    if (!business?.id) return
+    const supabase = createClient()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const refreshSoon = () => { clearTimeout(timer); timer = setTimeout(() => router.refresh(), 400) }
+    const channel = supabase
+      .channel(`owner-notices-${business.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notices', filter: `business_id=eq.${business.id}` }, refreshSoon)
+      .subscribe()
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshSoon() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearTimeout(timer); supabase.removeChannel(channel); document.removeEventListener('visibilitychange', onVisible) }
+  }, [business?.id, router])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)

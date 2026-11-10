@@ -278,7 +278,8 @@ export default function UploadNotice({ businessId, ownerView = false, captureMod
       setAiFailedDocket(null)
       setSuccessMessage(`Docket successfully sealed! "${failedDoc.name}" has been forwarded directly to your Chartered Accountant Bench for full legal review.`)
       setTimeout(() => {
-        window.location.href = ownerView ? '/dashboard/owner/notices' : '/dashboard/owner'
+        router.push(ownerView ? '/dashboard/owner/notices' : '/dashboard/owner')
+        router.refresh()
       }, 1200)
     } catch (err: any) {
       console.error('Error dispatching to CA Bench:', err)
@@ -343,13 +344,8 @@ export default function UploadNotice({ businessId, ownerView = false, captureMod
       setDocketData(null)
       setShowPdfPreview(false)
 
-      // Direct redirection to owner dashboard to display newly created notice
-      try {
-        router.refresh()
-      } catch (e) {
-        // Safe fallback in static / non-standard router contexts
-      }
-      window.location.href = ownerView ? '/dashboard/owner/notices' : '/dashboard/owner'
+      router.push(ownerView ? '/dashboard/owner/notices' : '/dashboard/owner')
+      router.refresh()
     } catch (err: any) {
       console.error('Error saving sealed docket:', err)
       setModalError(err.message || 'Failed to seal docket into database')

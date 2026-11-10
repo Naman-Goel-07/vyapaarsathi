@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { LogOut } from 'lucide-react'
+import { LogOut, Send } from 'lucide-react'
+import Link from 'next/link'
 import { useLanguage } from '@/lib/context/LanguageContext'
 import LanguageToggle from '@/components/LanguageToggle'
 
@@ -10,7 +11,7 @@ interface DashboardHeaderControlsProps {
 }
 
 export default function DashboardHeaderControls({ role }: DashboardHeaderControlsProps) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const roleLabel = role === 'ca' ? t('roles.caBench', 'CA Bench') : t('roles.ownerDesk', 'Owner Desk')
   const logoutLabel = t('common.logout', 'Logout')
@@ -19,6 +20,13 @@ export default function DashboardHeaderControls({ role }: DashboardHeaderControl
     <div className="flex items-center gap-3 sm:gap-4">
       {/* Government-Style Language Toggle */}
       <LanguageToggle />
+      {role === 'ca' && (
+        <Link href="/dashboard/telegram" className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md px-2 hover:bg-gray-100"
+          aria-label={lang === 'hi' ? 'टेलीग्राम अपडेट' : 'Telegram updates'}>
+          <Send size={18} aria-hidden="true" />
+          <span className="hidden sm:inline">Telegram</span>
+        </Link>
+      )}
 
       {/* Role Badge */}
       <div className="flex items-center gap-2">

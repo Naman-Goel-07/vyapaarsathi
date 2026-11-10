@@ -12,24 +12,18 @@ import NoticeDocketHeader from '@/components/NoticeDocketHeader'
 import NoticePDFViewer from '@/components/NoticePDFViewer'
 import { extractDemandAmount, extractDIN } from '@/lib/demand'
 import { ArrowLeft, Building2, Calendar, FileText, Scale, ShieldCheck } from 'lucide-react'
+import { getProfile, getSessionUser } from '@/lib/supabase/session'
 
 export default async function NoticeDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const { data: notice } = await supabase
-    .from('notices')
-    .select('*, businesses(name)')
-    .eq('id', params.id)
-    .single()
-
+  const supabase = createClient()
+  // These three don't depend on each other, so fetch them together
+  const [profile, { data: notice }, { data: tasks }] = await Promise.all([
+    getProfile(),
+    supabase.from('notices').select('*, businesses(name)').eq('id', params.id).single(),
+    supabase.from('tasks').select('*').eq('notice_id', params.id).order('created_at', { ascending: true }),
+  ])
   if (!notice) {
     if (profile?.role === 'owner') return <OwnerNoticeNotFound />
     return (
@@ -38,24 +32,12 @@ export default async function NoticeDetailPage({ params }: { params: { id: strin
         <p className="text-sm text-gray-500">
           The requested statutory notice does not exist or you lack permission to view this file.
         </p>
-        <Link
-          href="/dashboard/owner"
-          className="inline-block px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium"
-        >
+        <Link href="/dashboard/owner" className="inline-block px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium">
           Return to Dashboard
         </Link>
       </div>
     )
   }
-
-  // Pre-fetch initial tasks to supply hydrated SSR data to pipeline and task graph
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('notice_id', notice.id)
-    .order('created_at', { ascending: true })
-
-  // Query other closed or filed notices for the same business with the same form
   const { data: pastNotices } = await supabase
     .from('notices')
     .select('id, form, issue, deadline, status, created_at')

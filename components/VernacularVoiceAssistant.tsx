@@ -48,6 +48,9 @@ const LANGUAGES: LanguageOption[] = [
 
 const WAVE = [8, 14, 10, 20, 12, 24, 9, 16, 22, 11, 18, 7, 15, 21, 10, 13, 19, 8, 12, 17]
 
+// Keeps scripts across page visits so reopening a notice plays instantly
+const briefingCache = new Map<string, string>()
+
 interface VernacularVoiceAssistantProps {
   ownerView?: boolean
   authority: string;
@@ -68,8 +71,8 @@ export default function VernacularVoiceAssistant({
   businessName = 'Vyapaari Ji'
 }: VernacularVoiceAssistantProps) {
   const { t, lang } = useLanguage()
-
-  const [selectedLang, setSelectedLang] = useState<LanguageCode>('hinglish');
+  const preferred: LanguageCode = ownerView && lang === 'hi' ? 'hindi' : 'hinglish';
+  const [selectedLang, setSelectedLang] = useState<LanguageCode>(preferred);
   const [script, setScript] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -85,12 +88,19 @@ export default function VernacularVoiceAssistant({
   const requestId = useRef(0);
   const fetchBriefing = async (targetLang: LanguageCode) => {
     const id = ++requestId.current;
-    setLoading(true);
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       setIsPlaying(false);
       setIsPaused(false);
     }
+    const key = [authority, form, issue, deadline, penaltyAmount, targetLang].join('|');
+    const cached = briefingCache.get(key);
+    if (cached) {
+      setScript(cached);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     try {
       const res = await fetch('/api/voice-briefing', {
         method: 'POST',
@@ -98,6 +108,7 @@ export default function VernacularVoiceAssistant({
         body: JSON.stringify({ authority, form, issue, deadline, penaltyAmount, businessName, language: targetLang })
       });
       const data = await res.json();
+      if (data.script) briefingCache.set(key, data.script);
       if (id === requestId.current && data.script) setScript(data.script);
     } catch (err) {
       console.error('Failed to load vernacular voice briefing:', err);
@@ -106,18 +117,15 @@ export default function VernacularVoiceAssistant({
     }
   };
   useEffect(() => {
-    fetchBriefing('hinglish');
-  }, []);
-
+    setSelectedLang(preferred);
+    fetchBriefing(preferred);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferred]);
   const handleLanguageSelect = (lang: LanguageCode) => {
     if (lang === selectedLang) return;
     setSelectedLang(lang);
     fetchBriefing(lang);
   };
-
-  useEffect(() => {
-    if (ownerView && lang === 'hi') handleLanguageSelect('hindi');
-  }, [ownerView, lang]);
 
   // Text-To-Speech Playback
   const handlePlay = () => {

@@ -1,37 +1,17 @@
 import OwnerWorkspace from '@/components/owner/OwnerWorkspace'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import WhatsAppBotSimulator from '@/components/WhatsAppBotSimulator'
 import DashboardHeaderControls from '@/components/DashboardHeaderControls'
+import { getProfile, getSessionUser } from '@/lib/supabase/session'
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const supabase = createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const user = await getSessionUser()
+  if (!user) return redirect('/login')
+  const profile = await getProfile()
   if (profile?.role === 'owner') return <OwnerWorkspace>{children}</OwnerWorkspace>
-
   return (
     <div className="min-h-screen bg-paper flex flex-col font-sans text-ink">
-      {/* Top bureaucratic header */}
       <header className="bg-white border-b-2 border-ink px-6 py-3 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <Link href={`/dashboard/${profile?.role}`}>
@@ -42,15 +22,9 @@ export default async function DashboardLayout({
             <span className="font-medium">{user.id.split('-')[0].toUpperCase()}</span>
           </div>
         </div>
-
         <DashboardHeaderControls role={profile?.role} />
       </header>
-      
-      <main className="flex-1 w-full relative">
-        {children}
-      </main>
-
-      {/* ZERO-FRICTION MSME WHATSAPP BOT GATEWAY */}
+      <main className="flex-1 w-full relative">{children}</main>
       <WhatsAppBotSimulator />
     </div>
   )
